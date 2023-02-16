@@ -16,4 +16,4 @@ python data_utils.py
 
 ## 训练
 
-python task_prompt_t5.py
+python task_chat_t5.py
