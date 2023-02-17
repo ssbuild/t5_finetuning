@@ -233,6 +233,6 @@ if __name__ == '__main__':
             writer.write(example)
         writer.close()
 
-
-    # 再次打乱数据
-    shuffle_records(dataHelper.train_files, dataHelper.train_files[0])
+    # 对每个record 再次打乱
+    for filename in dataHelper.train_files:
+        shuffle_records(filename, filename)
