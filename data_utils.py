@@ -207,32 +207,32 @@ if __name__ == '__main__':
     # 缓存数据集
     # 检测是否存在 output/dataset_0-train.record ，不存在则制作数据集
     if data_args.do_train:
-        dataHelper.make_dataset_with_args(data_args.train_file, shuffle=True,mode='train')
+        dataHelper.make_dataset_with_args(data_args.train_file,mixed_data=False, shuffle=True,mode='train')
     if data_args.do_eval:
         dataHelper.make_dataset_with_args(data_args.eval_file, shuffle=False,mode='eval')
     if data_args.do_test:
         dataHelper.make_dataset_with_args(data_args.test_file, shuffle=False,mode='test')
 
 
-    def shuffle_records(record_filenames, outfile, compression_type='GZIP'):
-        print('shuffle_records record...')
-        options = RECORD.TFRecordOptions(compression_type=compression_type)
-        dataset_reader = Loader.RandomDataset(record_filenames, options=options, with_share_memory=True)
-        data_size = len(dataset_reader)
-        all_example = []
-        for i in tqdm(range(data_size), desc='load records'):
-            serialized = dataset_reader[i]
-            all_example.append(serialized)
-        dataset_reader.close()
-
-        shuffle_idx = list(range(data_size))
-        random.shuffle(shuffle_idx)
-        writer = WriterObject(outfile, options=options)
-        for i in tqdm(shuffle_idx, desc='shuffle record'):
-            example = all_example[i]
-            writer.write(example)
-        writer.close()
-
-    # 对每个record 再次打乱
-    for filename in dataHelper.train_files:
-        shuffle_records(filename, filename)
+    # def shuffle_records(record_filenames, outfile, compression_type='GZIP'):
+    #     print('shuffle_records record...')
+    #     options = RECORD.TFRecordOptions(compression_type=compression_type)
+    #     dataset_reader = Loader.RandomDataset(record_filenames, options=options, with_share_memory=True)
+    #     data_size = len(dataset_reader)
+    #     all_example = []
+    #     for i in tqdm(range(data_size), desc='load records'):
+    #         serialized = dataset_reader[i]
+    #         all_example.append(serialized)
+    #     dataset_reader.close()
+    #
+    #     shuffle_idx = list(range(data_size))
+    #     random.shuffle(shuffle_idx)
+    #     writer = WriterObject(outfile, options=options)
+    #     for i in tqdm(shuffle_idx, desc='shuffle record'):
+    #         example = all_example[i]
+    #         writer.write(example)
+    #     writer.close()
+    #
+    # # 对每个record 再次打乱
+    # for filename in dataHelper.train_files:
+    #     shuffle_records(filename, filename)
