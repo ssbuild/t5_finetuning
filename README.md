@@ -1,3 +1,17 @@
+## 安装
+
+- pip install -U deep_training >= 0.0.14
+- 当前文档版本pypi 0.0.14
+
+## 更新详情
+
+- [deep_training](https://github.com/ssbuild/deep_training)
+
+## 深度学习常规任务例子
+
+- [deep_training-examples](https://github.com/ssbuild/deep_training-examples)
+
+
 ## clue-chat finetuning 
 
     预训练模型下载 https://huggingface.co/ClueAI/ChatYuan-large-v1
