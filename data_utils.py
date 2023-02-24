@@ -188,7 +188,7 @@ class NN_DataHelper(DataHelper):
                 for session in paragraph:
                     q = session['q']
                     answers_list = session['a']
-                    q += preprocess('用户：' + q + '小元：' )
+                    q = preprocess('用户：' + q + '小元：' )
                     answers = ''
                     for a in answers_list:
                         answers += preprocess(a + '\n')
