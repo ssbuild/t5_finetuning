@@ -27,7 +27,7 @@ train_info_args = {
     'config_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1/config.json',
     'convert_onnx': False, # 转换onnx模型
     'do_train': True, 
-    'train_file':  [ '/data/nlp/nlp_train_data/chatyuan/finetune_train_examples.json'],
+    'train_file':  [ './data/finetune_train_examples.json'],
     'max_epochs': 3,
     'train_batch_size': 6,
     'eval_batch_size': 2,
@@ -45,8 +45,8 @@ train_info_args = {
 }
 
 data_conf = {
-    'stride': 50, #滑动窗口 ， 数据多则相应增大，否则减小
-    'count_per_group': 1, #大规模训练可以提高 ,#chatyuan 应该是1
+    'stride': 0,
+    #滑动窗口 ， 数据多则相应增大，否则减小 ,stride <=0 则禁用滑动窗口
 }
 def preprocess(text):
   text = text.replace("\n", "\\n").replace("\t", "\\t")
@@ -58,36 +58,34 @@ def postprocess(text):
 
 class NN_DataHelper(DataHelper):
     index = 1
+    def __init__(self, *args,**kwargs):
+        super(NN_DataHelper, self).__init__(*args,**kwargs)
+
+        #非滑动窗口模式
+        if data_conf['stride'] <= 0:
+            self.collate_fn = self.collate_fn_none_stride
+            self.get_feature = self.get_feature_none_stride
+        else:
+            #滑动窗口模式
+            self.collate_fn = self.collate_fn_stride
+            self.get_feature = self.get_feature_with_stride
+
 
     def on_data_ready(self):
         self.index = -1
 
-    # 切分词
-    def on_data_process(self, data: typing.Any, mode: str):
-        self.index += 1
 
-        tokenizer: T5Tokenizer
-        max_seq_length = self.max_seq_length_dict[mode]
-        tokenizer = self.tokenizer
-
-        stride = data_conf['stride']
-        COUNT_PER_GROUP = data_conf['count_per_group']
-
-        sub_list = data
+    def get_feature_with_stride(self,examples,stride,tokenizer,max_seq_length):
         input_ids = []
-
-        for idx, paragraphs in enumerate(sub_list):
-            if COUNT_PER_GROUP > 1:
-                text = paragraphs + '<extra_id_0>'
-            else:
-                text = paragraphs
+        for idx, (question,answer) in enumerate(examples):
+            text = question + answer
             o = tokenizer.encode_plus(text=text, truncation=True,
                                       return_attention_mask=False,
                                       return_token_type_ids=False)
             if len(o['input_ids']) <= 3:
                 continue
             input_ids += o['input_ids'][:-1]
-            if idx != len(sub_list) - 1:
+            if idx != len(examples) - 1:
                 input_ids += [tokenizer.eos_token_id]
 
         pos = 0
@@ -113,14 +111,68 @@ class NN_DataHelper(DataHelper):
             print(ds[0])
         return ds
 
+    def get_feature_none_stride(self, examples, stride, tokenizer, max_seq_length):
+        tokenizer : T5Tokenizer
+        ds = []
+        for idx, (question, answer) in enumerate(examples):
+            o1 = tokenizer.encode_plus(text=question, truncation=True,padding='max_length',max_length=max_seq_length,
+                                      return_token_type_ids=False)
+            o2 = tokenizer.encode_plus(text=answer, truncation=True,padding='max_length',max_length=max_seq_length,
+                                       return_token_type_ids=False)
 
-    #{"id": 0, "paragraph": ["用户：写一个诗歌，关于冬天", "小元：冬夜寂静冷，", "云在天边飘，", "冰封白雪上， ", "寒冷像一场雪。", " ", "雪花融化成冰，", "像那雪花飘洒，", "在寒冷的冬天，", "感受春天的喜悦。", " 冬日里，", "风雪渐消，", "一片寂静，", "把快乐和温暖带回家。"]}
+            seqlen = np.sum(o1['attention_mask'])
+            decoder_seqlen = np.sum(o2['attention_mask']).tolist()
+            labels = copy.deepcopy(o2['input_ids'][1:])
+            labels = labels + [-100]
+            labels = np.asarray(labels,dtype=np.int64)
+            labels[decoder_seqlen-1:] = -100
+
+            d = {
+                'input_ids': np.asarray(o1['input_ids'],dtype=np.int64),
+                'attention_mask': np.asarray(o1['attention_mask'],dtype=np.int64),
+                'seqlen': np.asarray(seqlen,dtype=np.int64),
+                'decoder_input_ids': np.asarray(o2['input_ids'],dtype=np.int64),
+                'decoder_attention_mask': np.asarray(o2['attention_mask'],dtype=np.int64),
+                'decoder_seqlen': np.asarray(decoder_seqlen, dtype=np.int64),
+                'labels': np.asarray(labels,dtype=np.int64)
+            }
+            ds.append(d)
+
+        return ds
+
+    # 切分词
+    def on_data_process(self, data: typing.Any, mode: str):
+        self.index += 1
+
+        tokenizer: T5Tokenizer
+        max_seq_length = self.max_seq_length_dict[mode]
+        tokenizer = self.tokenizer
+
+        stride = data_conf['stride']
+
+        example = data
+        #多轮会话
+        ds = self.get_feature(example,stride,tokenizer,max_seq_length)
+        return ds
+
+    # {
+    #     "id": 0, "paragraph": [
+    #     # 一轮会话
+    #     {
+    #         "q": "从南京到上海的路线",
+    #         "a": [
+    #             "你好，南京到上海的路线如下：",
+    #             "1. 南京到上海，可以乘坐南京地铁1号线，在南京站乘坐轨道交通1号线。",
+    #             "2. 南京到浦东机场，可以搭乘上海地铁1号，在陆家嘴站乘坐地铁1线，在浦东国际机场站乘坐机场快线，前往上海浦东国际机场。",
+    #             "3. 上海到南京，可以换乘上海地铁2号线，从南京站换乘地铁2线，再从南京南站换乘地铁1路，然后到达上海站"
+    #         ]
+    #     }
+    #     # 二轮....
+    # ]
+    # }
     # 读取文件
     def on_get_corpus(self, files: typing.List, mode: str):
         D = []
-        COUNT_PER_GROUP = data_conf['count_per_group']
-
-        sub = []
         for file in files:
             with open(file,mode='r',encoding='utf-8',newline='\n') as f:
                 lines = f.readlines()
@@ -132,18 +184,21 @@ class NN_DataHelper(DataHelper):
                 paragraph = jd['paragraph']
                 if i < 10:
                     print(paragraph)
-                texts = ''
-                for text in paragraph:
-                    texts += preprocess(text + '\n')
-                sub.append(texts)
-                if len(sub) >= COUNT_PER_GROUP:
-                    D.append(copy.deepcopy(sub))
-                    sub.clear()
-        if sub:
-            D.append(copy.deepcopy(sub))
+                sub = []
+                for session in paragraph:
+                    q = session['q']
+                    answers_list = session['a']
+                    q += preprocess('用户：' + q)
+                    answers = ''
+                    for a in answers_list:
+                        answers += preprocess('小元：' + a + '\n')
+                    sub.append((q,answers))
+                D.append(copy.deepcopy(sub))
+                sub.clear()
+
         return D
 
-    def collate_fn(self, batch):
+    def collate_fn_stride(self, batch):
         self.tokenizer: T5Tokenizer
         o = {}
         for i, b in enumerate(batch):
@@ -193,6 +248,29 @@ class NN_DataHelper(DataHelper):
         o['decoder_input_ids'] = decoder_input_ids[:, :b_maxlen]
         o['decoder_attention_mask'] = decoder_attention_mask[:, :b_maxlen]
         o['labels'] = labels[:, :b_maxlen]
+        return o
+
+    def collate_fn_none_stride(self, batch):
+        self.tokenizer: T5Tokenizer
+        o = {}
+        for i, b in enumerate(batch):
+            if i == 0:
+                for k in b:
+                    o[k] = [torch.tensor(b[k])]
+            else:
+                for k in b:
+                    o[k].append(torch.tensor(b[k]))
+        for k in o:
+            o[k] = torch.stack(o[k])
+
+        seqlen = torch.sum(o.pop('seqlen'))
+        decoder_seqlen = torch.sum(o.pop('decoder_seqlen'))
+
+        o['input_ids'] = o['input_ids'][:,:seqlen]
+        o['attention_mask'] = o['attention_mask'][:,:seqlen]
+        o['decoder_input_ids'] = o['decoder_input_ids'][:,:decoder_seqlen]
+        o['decoder_attention_mask'] = o['decoder_attention_mask'][:,:decoder_seqlen]
+        o['labels'] = o['labels'][:,:decoder_seqlen]
         return o
 
 
