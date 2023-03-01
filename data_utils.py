@@ -15,21 +15,23 @@ from deep_training.data_helper import DataHelper, ModelArguments, TrainingArgume
 from deep_training.utils.func import is_chinese_char
 from fastdatasets.record import load_dataset as Loader, RECORD, WriterObject, gfile
 from tqdm import tqdm
-from transformers import T5Tokenizer, HfArgumentParser
+from transformers import T5Tokenizer, HfArgumentParser, T5Config
 
 train_info_args = {
     'devices': 1,
     'data_backend': 'record',
     'model_type': 't5',
     # 预训练模型路径 , 从0训练，则置空
-    'model_name_or_path': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1',
-    'tokenizer_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1',
-    'config_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1/config.json',
+    'model_name_or_path': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5',
+    'tokenizer_name': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5',
+    'config_name': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5/config.json',
     'convert_onnx': False, # 转换onnx模型
-    'do_train': True, 
+    'do_train': True,
+    'convert_file': True, # train_file是否需要制作record , 如果已经制作好，可以不需要原语料文件，train_file 为制作好的record 文件list
     'train_file':  [ './data/finetune_train_examples.json'],
     'max_epochs': 3,
-    'train_batch_size': 6,
+    'max_steps': -1,# 训练最大步数=max_steps / gradient_accumulation_steps ， 数据多则按步数
+    'train_batch_size': 4,
     'eval_batch_size': 2,
     'test_batch_size': 2,
     'optimizer': 'adamw',
@@ -45,8 +47,10 @@ train_info_args = {
 }
 
 data_conf = {
+    # 滑动窗口 ， 数据多则相应增大，否则减小 ,stride <=0 则禁用滑动窗口
+    #'stride': 50,
     'stride': 0,
-    #滑动窗口 ， 数据多则相应增大，否则减小 ,stride <=0 则禁用滑动窗口
+
 }
 def preprocess(text):
   text = text.replace("\n", "\\n").replace("\t", "\\t")
@@ -112,14 +116,18 @@ class NN_DataHelper(DataHelper):
         return ds
 
     def get_feature_none_stride(self, examples, stride, tokenizer, max_seq_length):
+        config: T5Config = self.config
         tokenizer : T5Tokenizer
         ds = []
         for idx, (question, answer) in enumerate(examples):
             o1 = tokenizer.encode_plus(text=question, truncation=True,padding='max_length',max_length=max_seq_length,
                                       return_token_type_ids=False)
-            o2 = tokenizer.encode_plus(text=answer, truncation=True,padding='max_length',max_length=max_seq_length,
+            o2 = tokenizer.encode_plus(text=answer, truncation=True,padding='max_length',max_length=max_seq_length-1,
                                        return_token_type_ids=False)
 
+            o2['input_ids'] = [config.decoder_start_token_id] + o2['input_ids']
+            o2['attention_mask'] = [1] + o2['attention_mask']
+            
             seqlen = np.sum(o1['attention_mask'])
             decoder_seqlen = np.sum(o2['attention_mask']).tolist()
             labels = copy.deepcopy(o2['input_ids'][1:])
@@ -128,13 +136,13 @@ class NN_DataHelper(DataHelper):
             labels[decoder_seqlen-1:] = -100
 
             d = {
-                'input_ids': np.asarray(o1['input_ids'],dtype=np.int64),
-                'attention_mask': np.asarray(o1['attention_mask'],dtype=np.int64),
-                'seqlen': np.asarray(seqlen,dtype=np.int64),
-                'decoder_input_ids': np.asarray(o2['input_ids'],dtype=np.int64),
-                'decoder_attention_mask': np.asarray(o2['attention_mask'],dtype=np.int64),
-                'decoder_seqlen': np.asarray(decoder_seqlen, dtype=np.int64),
-                'labels': np.asarray(labels,dtype=np.int64)
+                'input_ids': np.asarray(o1['input_ids'],dtype=np.int32),
+                'attention_mask': np.asarray(o1['attention_mask'],dtype=np.int32),
+                'seqlen': np.asarray(seqlen,dtype=np.int32),
+                'decoder_input_ids': np.asarray(o2['input_ids'],dtype=np.int32),
+                'decoder_attention_mask': np.asarray(o2['attention_mask'],dtype=np.int32),
+                'decoder_seqlen': np.asarray(decoder_seqlen, dtype=np.int32),
+                'labels': np.asarray(labels,dtype=np.int32)
             }
             ds.append(d)
 
@@ -217,6 +225,7 @@ class NN_DataHelper(DataHelper):
         bs = len(batch)
         pad_token_id = self.tokenizer.pad_token_id
         eos_token_id = self.tokenizer.eos_token_id
+        decoder_start_token_id = self.config.decoder_start_token_id
 
 
         input_ids = torch.full((bs, max_len), pad_token_id, dtype=torch.long)
@@ -237,17 +246,19 @@ class NN_DataHelper(DataHelper):
             a_ids[s] = eos_token_id
             a_mask[:s + 1] = 1
 
-            b_ids[:seqlen - s] = ids[s:seqlen]
-            b_mask[:seqlen - s] = 1
-            label[:seqlen - s-1] = b_ids[1:seqlen - s]
+            b_len = seqlen - s + 1
+            b_ids[0] = decoder_start_token_id
+            b_ids[1:b_len] = ids[s:seqlen]
+            b_mask[:b_len] = 1
+            label[:b_len- 1] = b_ids[1:b_len]
             a_maxlen = max(a_maxlen, s + 1)
-            b_maxlen = max(b_maxlen, seqlen - s)
+            b_maxlen = max(b_maxlen, b_len)
 
-        o['input_ids'] = input_ids[:, :a_maxlen]
-        o['attention_mask'] = attention_mask[:, :a_maxlen]
-        o['decoder_input_ids'] = decoder_input_ids[:, :b_maxlen]
-        o['decoder_attention_mask'] = decoder_attention_mask[:, :b_maxlen]
-        o['labels'] = labels[:, :b_maxlen]
+        o['input_ids'] = input_ids[:, :a_maxlen].long()
+        o['attention_mask'] = attention_mask[:, :a_maxlen].long()
+        o['decoder_input_ids'] = decoder_input_ids[:, :b_maxlen].long()
+        o['decoder_attention_mask'] = decoder_attention_mask[:, :b_maxlen].long()
+        o['labels'] = labels[:, :b_maxlen].long()
         return o
 
     def collate_fn_none_stride(self, batch):
@@ -266,11 +277,11 @@ class NN_DataHelper(DataHelper):
         seqlen = torch.sum(o.pop('seqlen'))
         decoder_seqlen = torch.sum(o.pop('decoder_seqlen'))
 
-        o['input_ids'] = o['input_ids'][:,:seqlen]
-        o['attention_mask'] = o['attention_mask'][:,:seqlen]
-        o['decoder_input_ids'] = o['decoder_input_ids'][:,:decoder_seqlen]
-        o['decoder_attention_mask'] = o['decoder_attention_mask'][:,:decoder_seqlen]
-        o['labels'] = o['labels'][:,:decoder_seqlen]
+        o['input_ids'] = o['input_ids'][:,:seqlen].long()
+        o['attention_mask'] = o['attention_mask'][:,:seqlen].long()
+        o['decoder_input_ids'] = o['decoder_input_ids'][:,:decoder_seqlen].long()
+        o['decoder_attention_mask'] = o['decoder_attention_mask'][:,:decoder_seqlen].long()
+        o['labels'] = o['labels'][:,:decoder_seqlen].long()
         return o
 
 
@@ -281,11 +292,11 @@ if __name__ == '__main__':
 
     dataHelper = NN_DataHelper(model_args, training_args, data_args)
     tokenizer, config, label2id, id2label = dataHelper.load_tokenizer_and_config()
-    config.decoder_start_token_id = tokenizer.cls_token_id
+
     # 缓存数据集
     # 检测是否存在 output/dataset_0-train.record ，不存在则制作数据集
     if data_args.do_train:
-        dataHelper.make_dataset_with_args(data_args.train_file,mixed_data=False, shuffle=True,mode='train')
+        dataHelper.make_dataset_with_args(data_args.train_file,mixed_data=False, shuffle=True,mode='train',num_process_worker=0)
     if data_args.do_eval:
         dataHelper.make_dataset_with_args(data_args.eval_file, shuffle=False,mode='eval')
     if data_args.do_test:
