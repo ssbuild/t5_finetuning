@@ -95,7 +95,7 @@ class NN_DataHelper(DataHelper):
         pos = 0
         ds = []
         while pos < len(input_ids):
-            input_ids_ = input_ids[pos: pos + max_seq_length - 2] + [tokenizer.eos_token_id]
+            input_ids_ = input_ids[pos: pos + max_seq_length - 3] + [tokenizer.eos_token_id]
             pos += stride
 
             if len(input_ids_) <= 5:
