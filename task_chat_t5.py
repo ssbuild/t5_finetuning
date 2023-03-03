@@ -61,7 +61,7 @@ class MySimpleModelCheckpoint(SimpleModelCheckpoint):
             model = pl_module.backbone.model
 
         # 简易测试生成
-        o = tokenizer.encode_plus(preprocess(prefix), truncation=True, max_length=512, return_attention_mask=False,return_token_type_ids=False)
+        o = tokenizer.encode_plus(prefix, truncation=True, max_length=512, return_attention_mask=False,return_token_type_ids=False)
         input_ids= [o['input_ids']]
         input_ids = torch.tensor(input_ids, dtype=torch.int32,device=device)
 
