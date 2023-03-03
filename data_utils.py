@@ -12,6 +12,7 @@ import typing
 import numpy as np
 import torch
 from deep_training.data_helper import DataHelper, ModelArguments, TrainingArguments, DataArguments
+from deep_training.nlp.models.lora import LoraArguments
 from deep_training.utils.func import is_chinese_char
 from fastdatasets.record import load_dataset as Loader, RECORD, WriterObject, gfile
 from tqdm import tqdm
@@ -22,9 +23,12 @@ train_info_args = {
     'data_backend': 'record',
     'model_type': 't5',
     # 预训练模型路径 , 从0训练，则置空
-    'model_name_or_path': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5',
-    'tokenizer_name': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5',
-    'config_name': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5/config.json',
+    'model_name_or_path': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1',
+    'tokenizer_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1',
+    'config_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1/config.json',
+    # 'model_name_or_path': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5',
+    # 'tokenizer_name': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5',
+    # 'config_name': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5/config.json',
     'convert_onnx': False, # 转换onnx模型
     'do_train': True,
     'convert_file': True, # train_file是否需要制作record , 如果已经制作好，可以不需要原语料文件，train_file 为制作好的record 文件list
@@ -34,7 +38,7 @@ train_info_args = {
     'train_batch_size': 4,
     'eval_batch_size': 2,
     'test_batch_size': 2,
-    'optimizer': 'adamw',
+    'optimizer': 'adamw', # one of adamw,adam,lion
     'learning_rate': 5e-5,
     'adam_epsilon': 1e-8,
     'gradient_accumulation_steps': 1,
@@ -43,15 +47,30 @@ train_info_args = {
     'warmup_steps': 0,
     'output_dir': './output',
     'max_seq_length': 512,
-    'max_target_length': 100  # 预测最大长度
+    'max_target_length': 100,  # 预测最大长度
+
+    ##############  lora模块
+    'with_lora': False,  # 是否启用lora模块
+    'lora_model_name_or_path': None, #预训练权重
+    'inference_mode': False,
+    'r': 8,
+    'target_modules': ['q', 'v'],
+    'lora_alpha': 32,
+    # 'enable_lora': [True],
+    'enable_lora': None,
+    'lora_dropout': 0.1,
+    'merge_weights': False,
+    'fan_in_fan_out': False,
+    'bias': 'none',  # Bias type for Lora. Can be 'none', 'all' or 'lora_only'"
 }
 
 data_conf = {
     # 滑动窗口 ， 数据多则相应增大，否则减小 ,stride <=0 则禁用滑动窗口
     #'stride': 50,
     'stride': 0,
-
 }
+
+
 def preprocess(text):
   text = text.replace("\n", "\\n").replace("\t", "\\t")
   return text
@@ -286,9 +305,8 @@ class NN_DataHelper(DataHelper):
 
 
 if __name__ == '__main__':
-
-    parser = HfArgumentParser((ModelArguments, TrainingArguments, DataArguments))
-    model_args, training_args, data_args = parser.parse_dict(train_info_args)
+    parser = HfArgumentParser((ModelArguments, TrainingArguments, DataArguments, LoraArguments))
+    model_args, training_args, data_args, lora_args = parser.parse_dict(train_info_args)
 
     dataHelper = NN_DataHelper(model_args, training_args, data_args)
     tokenizer, config, label2id, id2label = dataHelper.load_tokenizer_and_config()

@@ -1,28 +1,48 @@
 # -*- coding: utf-8 -*-
 #reference: https://github.com/clue-ai/PromptCLUE/blob/main/Fine_tuning_PyTorch.ipynb
+import logging
 
-import numpy as np
 import torch
 import transformers
 from deep_training.data_helper import ModelArguments, DataArguments, TrainingArguments
+from deep_training.nlp.models.lora import LoraModel, LoraArguments
 from deep_training.nlp.models.transformer import TransformerForSeq2SeqLM
 from deep_training.utils.trainer import SimpleModelCheckpoint
 from pytorch_lightning import Trainer
-from torch.utils.data import DataLoader, IterableDataset
 from transformers import HfArgumentParser, T5Tokenizer
 
-from data_utils import NN_DataHelper, train_info_args,preprocess,postprocess
+from data_utils import NN_DataHelper, train_info_args, preprocess, postprocess
 
 
 class MyTransformer(TransformerForSeq2SeqLM, with_pl=True):
     def __init__(self, *args, **kwargs):
+        lora_args: LoraArguments = kwargs.pop('lora_args')
         super(MyTransformer, self).__init__(*args, **kwargs)
-
+        if lora_args.with_lora:
+            model = LoraModel(self.backbone,lora_args)
+            print('*' * 30)
+            model.print_trainable_parameters()
+            self.set_model(model,copy_attr=False)
 
 class MySimpleModelCheckpoint(SimpleModelCheckpoint):
     def __init__(self, *args, **kwargs):
         super(MySimpleModelCheckpoint, self).__init__(*args, **kwargs)
-        self.weight_file = './best.pt'
+        lora_args: LoraArguments = self.external_kwargs['lora_args']
+        if lora_args.with_lora:
+            self.weight_file = './best_ckpt'
+            self.last_weight_file = './last_ckpt'
+
+
+    def load_model_from_ckpt(self):
+        model_args = self.external_kwargs['model_args']
+        training_args = self.external_kwargs['training_args']
+        lora_args = LoraArguments.from_pretrained(self.last_weight_file)
+        pl_module = MyTransformer(lora_args=lora_args,
+                              config=config,
+                              model_args=model_args,
+                              training_args=training_args)
+
+        return pl_module
 
     @staticmethod
     def generate_text(pl_module: MyTransformer, prefix, tokenizer, max_target_length, device=0):
@@ -30,7 +50,12 @@ class MySimpleModelCheckpoint(SimpleModelCheckpoint):
         config = pl_module.config
 
         model: transformers.T5ForConditionalGeneration
-        model = pl_module.backbone.model
+        if hasattr(pl_module.backbone.model,'model'): # lora 从权重加载模型
+            model = pl_module.backbone.model.model
+            model.to(device)
+            model.eval()
+        else:
+            model = pl_module.backbone.model
 
         # 简易测试生成
         o = tokenizer.encode_plus(preprocess(prefix), truncation=True, max_length=512, return_attention_mask=False,return_token_type_ids=False)
@@ -49,33 +74,71 @@ class MySimpleModelCheckpoint(SimpleModelCheckpoint):
     def on_save_model(
             self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
     ) -> None:
+
+        lora_args : LoraArguments =  self.external_kwargs['lora_args']
         # 保存权重
-        super(MySimpleModelCheckpoint, self).on_save_model(trainer, pl_module)
-        prefixs = ['用户：帮我写一个请假条，我因为新冠不舒服，需要请假3天，请领导批准'
-                  '用户：你能干什么',
-                  '用户：写一个诗歌，关于冬天',
-                   ]
-        print('*' * 30)
+        if not lora_args.with_lora:
+            super(MySimpleModelCheckpoint, self).on_save_model(trainer, pl_module)
+        else:
+            monitor_candidates = self._monitor_candidates(trainer)
+            monitor_candidates.update(self.on_get_metric(trainer, pl_module))
+            val = monitor_candidates.get(self.monitor, None)
+
+            #保存loss最小权重
+            if self.update_best(val):
+                logging.info('epoch {} ,step {} , save best {}, {}\n'.format(monitor_candidates['epoch'],
+                                                                             monitor_candidates['step'],
+                                                                             self.best[self.monitor],
+                                                                             self.weight_file))
+                pl_module.backbone.save_pretrained(self.weight_file)
+            #保存最新权重
+            pl_module.backbone.save_pretrained(self.last_weight_file)
+            # 从最新权重加载模型
+            pl_module = self.load_model_from_ckpt()
+
+
+        prefixs = [
+            "帮我写一个请假条，我因为新冠不舒服，需要请假3天，请领导批准",
+            "你能干什么",
+            "用英文写一封道歉的邮件，表达因为物流延误，不能如期到达，我们可以赔偿贵公司所有损失",
+            "写一个文章，题目是未来城市",
+            "写一个诗歌，关于冬天",
+            "从南京到上海的路线",
+            "学前教育专业岗位实习中，在学生方面会存在问题，请提出改进措施。800字",
+            "根据标题生成文章：标题：屈臣氏里的化妆品到底怎么样？正文：化妆品，要讲究科学运用，合理搭配。屈臣氏起码是正品连锁店。请继续后面的文字。",
+            "帮我对比几款GPU，列出详细参数对比，并且给出最终结论",
+        ]
+
         device = trainer.global_rank
         self.tokenizer: T5Tokenizer
         tokenizer = self.tokenizer
         data_args = self.data_args
-        for prefix in prefixs:
-            output = MySimpleModelCheckpoint.generate_text(pl_module, prefix, tokenizer,
-                                                           data_args.max_target_length, device=device)
-            print('input', prefix)
+
+
+        print('*' * 30,'generate_text...')
+        for input_text in prefixs:
+            input_text = "用户：" + input_text + "\n小元："
+            input_text = preprocess(input_text)
+            output = MySimpleModelCheckpoint.generate_text(pl_module, input_text, tokenizer,data_args.max_target_length, device=device)
+
+            print('input', input_text)
             print('output', output)
             print()
 
 
 
 if __name__ == '__main__':
-    parser = HfArgumentParser((ModelArguments, TrainingArguments, DataArguments))
-    model_args, training_args, data_args = parser.parse_dict(train_info_args)
+    parser = HfArgumentParser((ModelArguments, TrainingArguments, DataArguments,LoraArguments))
+    model_args, training_args, data_args,lora_args = parser.parse_dict(train_info_args)
     # 保存最小loss模型
     checkpoint_callback = MySimpleModelCheckpoint(monitor="loss",
                                                   every_n_epochs = 1,
-                                                  every_n_train_steps=2000 // training_args.gradient_accumulation_steps)
+                                                  every_n_train_steps=2000 // training_args.gradient_accumulation_steps,
+                                                  #模型参数
+                                                  model_args=model_args,
+                                                  training_args=training_args,
+                                                  lora_args=lora_args,
+                                                  )
     trainer = Trainer(
         callbacks=[checkpoint_callback],
         max_epochs=training_args.max_epochs,
@@ -106,7 +169,7 @@ if __name__ == '__main__':
         dataHelper.make_dataset_with_args(data_args.test_file,mode='test')
 
 
-    model = MyTransformer(config=config, model_args=model_args, training_args=training_args)
+    model = MyTransformer(lora_args=lora_args,config=config,model_args=model_args, training_args=training_args)
 
     if not data_args.convert_onnx:
         train_datasets = dataHelper.load_random_sampler(dataHelper.train_files,
@@ -119,17 +182,29 @@ if __name__ == '__main__':
                                                         process_index=trainer.global_rank)
         if train_datasets is not None:
             trainer.fit(model, train_dataloaders=train_datasets)
-        else:
-            eval_datasets = dataHelper.load_sequential_sampler(dataHelper.eval_files,batch_size=training_args.eval_batch_size,collate_fn=dataHelper.collate_fn)
-            test_datasets = dataHelper.load_sequential_sampler(dataHelper.test_files,batch_size=training_args.test_batch_size,collate_fn=dataHelper.collate_fn)
-            if eval_datasets is not None:
-                trainer.validate(model, dataloaders=eval_datasets, ckpt_path='./best.pt')
-
-            if test_datasets is not None:
-                trainer.test(model, dataloaders=test_datasets, ckpt_path='best.pt')
+        # else:
+        #     eval_datasets = dataHelper.load_sequential_sampler(dataHelper.eval_files,batch_size=training_args.eval_batch_size,collate_fn=dataHelper.collate_fn)
+        #     test_datasets = dataHelper.load_sequential_sampler(dataHelper.test_files,batch_size=training_args.test_batch_size,collate_fn=dataHelper.collate_fn)
+        #     if eval_datasets is not None:
+        #         trainer.validate(model, dataloaders=eval_datasets, ckpt_path='./best.pt')
+        #
+        #     if test_datasets is not None:
+        #         trainer.test(model, dataloaders=test_datasets, ckpt_path='best.pt')
     else:
         # 加载权重
-        model = MyTransformer.load_from_checkpoint('./best.pt', config=config,
-                                                   model_args=model_args,
-                                                   training_args=training_args)
-        model.convert_to_onnx('./best.onnx')
+        if not lora_args.with_lora:
+            model = MyTransformer.load_from_checkpoint('./best.pt',
+                                                       lora_args=lora_args,
+                                                       config=config,
+                                                       model_args=model_args,
+                                                       training_args=training_args)
+            model.convert_to_onnx('./best.onnx')
+        else:
+            #加载权重
+            lora_args = LoraArguments.from_pretrained('./best_ckpt')
+            pl_module = MyTransformer(lora_args=lora_args,
+                                      config=config,
+                                      model_args=model_args,
+                                      training_args=training_args)
+            model_: transformers.T5ForConditionalGeneration
+            model_ = pl_module.backbone.model.model
