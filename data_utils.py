@@ -23,12 +23,12 @@ train_info_args = {
     'data_backend': 'record',
     'model_type': 't5',
     # 预训练模型路径 , 从0训练，则置空
-    'model_name_or_path': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1',
-    'tokenizer_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1',
-    'config_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1/config.json',
-    # 'model_name_or_path': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5',
-    # 'tokenizer_name': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5',
-    # 'config_name': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5/config.json',
+    # 'model_name_or_path': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1',
+    # 'tokenizer_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1',
+    # 'config_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1/config.json',
+    'model_name_or_path': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5',
+    'tokenizer_name': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5',
+    'config_name': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5/config.json',
     'convert_onnx': False, # 转换onnx模型
     'do_train': True,
     'convert_file': True, # train_file是否需要制作record , 如果已经制作好，可以不需要原语料文件，train_file 为制作好的record 文件list

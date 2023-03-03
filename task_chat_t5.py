@@ -42,6 +42,7 @@ class MySimpleModelCheckpoint(SimpleModelCheckpoint):
                               model_args=model_args,
                               training_args=training_args)
 
+        pl_module.backbone.model.model = pl_module.backbone.model.from_pretrained(pl_module.backbone.model.model,self.last_weight_file)
         return pl_module
 
     @staticmethod
@@ -206,5 +207,7 @@ if __name__ == '__main__':
                                       config=config,
                                       model_args=model_args,
                                       training_args=training_args)
+            #二次加载权重
+            pl_module.backbone.model.model = pl_module.backbone.model.from_pretrained(pl_module.backbone.model.model,'./best_ckpt')
             model_: transformers.T5ForConditionalGeneration
             model_ = pl_module.backbone.model.model
