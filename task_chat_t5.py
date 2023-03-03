@@ -18,6 +18,7 @@ class MyTransformer(TransformerForSeq2SeqLM, with_pl=True):
     def __init__(self, *args, **kwargs):
         lora_args: LoraArguments = kwargs.pop('lora_args')
         super(MyTransformer, self).__init__(*args, **kwargs)
+        self.lora_args = lora_args
         if lora_args.with_lora:
             model = LoraModel(self.backbone,lora_args)
             print('*' * 30)
@@ -42,7 +43,8 @@ class MySimpleModelCheckpoint(SimpleModelCheckpoint):
                               model_args=model_args,
                               training_args=training_args)
 
-        pl_module.backbone.model.model = pl_module.backbone.model.from_pretrained(pl_module.backbone.model.model,self.last_weight_file)
+
+        pl_module.backbone.from_pretrained(pl_module.backbone.model,self.last_weight_file)
         return pl_module
 
     @staticmethod
@@ -51,7 +53,7 @@ class MySimpleModelCheckpoint(SimpleModelCheckpoint):
         config = pl_module.config
 
         model: transformers.T5ForConditionalGeneration
-        if hasattr(pl_module.backbone.model,'model'): # lora 从权重加载模型
+        if pl_module.lora_args.with_lora: # lora 从权重加载模型
             model = pl_module.backbone.model.model
             model.to(device)
             model.eval()
@@ -117,12 +119,12 @@ class MySimpleModelCheckpoint(SimpleModelCheckpoint):
 
 
         print('*' * 30,'generate_text...')
-        for input_text in prefixs:
-            input_text = "用户：" + input_text + "\n小元："
+        for text in prefixs:
+            input_text = "用户：" + text + "\n小元："
             input_text = preprocess(input_text)
             output = MySimpleModelCheckpoint.generate_text(pl_module, input_text, tokenizer,data_args.max_target_length, device=device)
 
-            print('input', input_text)
+            print('input', text)
             print('output', output)
             print()
 
@@ -208,6 +210,7 @@ if __name__ == '__main__':
                                       model_args=model_args,
                                       training_args=training_args)
             #二次加载权重
-            pl_module.backbone.model.model = pl_module.backbone.model.from_pretrained(pl_module.backbone.model.model,'./best_ckpt')
+            pl_module.backbone.from_pretrained(pl_module.backbone.model,'./best_ckpt')
+
             model_: transformers.T5ForConditionalGeneration
             model_ = pl_module.backbone.model.model
