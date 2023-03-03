@@ -38,7 +38,7 @@ train_info_args = {
     'train_batch_size': 4,
     'eval_batch_size': 2,
     'test_batch_size': 2,
-    'optimizer': 'adamw', # one of adamw,adam,lion
+    'optimizer': 'lion', # one of adamw,adam,lion
     'learning_rate': 5e-5, # lora 调大学习率 1e-3
     'adam_epsilon': 1e-8,
     'gradient_accumulation_steps': 1,
