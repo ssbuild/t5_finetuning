@@ -9,7 +9,7 @@ from deep_training.nlp.models.lora import LoraModel, LoraArguments
 from deep_training.nlp.models.transformer import TransformerForSeq2SeqLM
 from deep_training.utils.trainer import SimpleModelCheckpoint
 from pytorch_lightning import Trainer
-from transformers import HfArgumentParser, T5Tokenizer
+from transformers import HfArgumentParser, T5Tokenizer, T5Config
 
 from data_utils import NN_DataHelper, train_info_args, preprocess, postprocess
 
@@ -205,7 +205,9 @@ if __name__ == '__main__':
             model_ = model.backbone.model
             #保存权重, 可选上传至huggingface
             tokenizer: T5Tokenizer
+            config: T5Config
             tokenizer.save_pretrained('chatyuan_finetuning')
+            config.save_pretrained('chatyuan_finetuning')
             model_.save_pretrained('chatyuan_finetuning', push_to_hub = False,max_shard_size= "10GB")
             #转换onnx 模型
             model.convert_to_onnx('./best.onnx')
