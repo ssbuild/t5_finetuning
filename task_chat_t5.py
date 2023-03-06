@@ -201,6 +201,13 @@ if __name__ == '__main__':
                                                        config=config,
                                                        model_args=model_args,
                                                        training_args=training_args)
+            model_: transformers.T5ForConditionalGeneration
+            model_ = model.backbone.model
+            #保存权重, 可选上传至huggingface
+            tokenizer: T5Tokenizer
+            tokenizer.save_pretrained('chatyuan_finetuning')
+            model_.save_pretrained('chatyuan_finetuning', push_to_hub = False,max_shard_size= "10GB")
+            #转换onnx 模型
             model.convert_to_onnx('./best.onnx')
         else:
             #加载权重
