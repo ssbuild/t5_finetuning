@@ -9,7 +9,8 @@
 
 ## 深度学习常规任务例子
 
-- [deep_training-examples](https://github.com/ssbuild/deep_training-examples)
+- [deep_training-pytorch-example](https://github.com/ssbuild/deep_training-pytorch-example)
+- [deep_training-tf-example](https://github.com/ssbuild/deep_training-tf-example)
 
 
 ## clue-chat finetuning 
