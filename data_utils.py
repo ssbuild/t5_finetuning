@@ -34,7 +34,7 @@ train_info_args = {
     'convert_file': True, # train_file是否需要制作record , 如果已经制作好，可以不需要原语料文件，train_file 为制作好的record 文件list
     'train_file':  [ './data/finetune_train_examples.json'],
     'max_epochs': 3,
-    'max_steps': -1,# 训练最大步数=max_steps / gradient_accumulation_steps ， 数据多则按步数
+    'max_steps': -1,
     'train_batch_size': 4,
     'eval_batch_size': 2,
     'test_batch_size': 2,
