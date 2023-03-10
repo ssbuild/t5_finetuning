@@ -102,19 +102,15 @@ class NN_DataHelper(DataHelper):
         input_ids = []
         for idx, (question,answer) in enumerate(examples):
             text = question + answer
-            o = tokenizer.encode_plus(text=text, truncation=True,
-                                      return_attention_mask=False,
-                                      return_token_type_ids=False)
+            o = tokenizer.encode_plus(text=text, return_attention_mask=False,return_token_type_ids=False)
             if len(o['input_ids']) <= 3:
                 continue
-            input_ids += o['input_ids'][:-1]
-            if idx != len(examples) - 1:
-                input_ids += [tokenizer.eos_token_id]
+            input_ids += o['input_ids']
 
         pos = 0
         ds = []
         while pos < len(input_ids):
-            input_ids_ = input_ids[pos: pos + max_seq_length - 3] + [tokenizer.eos_token_id]
+            input_ids_ = input_ids[pos: pos + max_seq_length - 2]
             pos += stride
 
             if len(input_ids_) <= 5:
@@ -265,11 +261,18 @@ class NN_DataHelper(DataHelper):
             a_ids[s] = eos_token_id
             a_mask[:s + 1] = 1
 
-            b_len = seqlen - s + 1
-            b_ids[0] = decoder_start_token_id
-            b_ids[1:b_len] = ids[s:seqlen]
-            b_mask[:b_len] = 1
-            label[:b_len- 1] = b_ids[1:b_len]
+            if ids[0] != decoder_start_token_id:
+                b_len = seqlen - s + 1
+                b_ids[0] = decoder_start_token_id
+                b_ids[1:b_len] = ids[s:seqlen]
+                b_mask[:b_len] = 1
+                label[:b_len- 1] = b_ids[1:b_len]
+            else:
+                b_len = seqlen - s
+                b_ids[:b_len] = ids[s:seqlen]
+                b_mask[:b_len] = 1
+                label[:b_len - 1] = b_ids[1:b_len]
+
             a_maxlen = max(a_maxlen, s + 1)
             b_maxlen = max(b_maxlen, b_len)
 
