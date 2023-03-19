@@ -71,6 +71,12 @@
     num_process_worker 为多进程制作数据 ， 如果数据量较大 ， 适当调大至cpu数量
     dataHelper.make_dataset_with_args(data_args.train_file,mixed_data=False, shuffle=True,mode='train',num_process_worker=0)
 
+
 ## 训练
 
-    python task_chat_t5.py
+    python train.py
+
+## 推理
+    
+    infer.py  推理微调模型和lora模型
+    infer_chatyuan.py 只能推理微调模型 (权重参考train.py 最后部分转换)
