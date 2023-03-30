@@ -15,7 +15,11 @@
 
 ## clue-chat finetuning 
 
-    预训练模型下载 https://huggingface.co/ClueAI/ChatYuan-large-v1
+    预训练模型下载
+- [ChatYuan-large-v1](https://huggingface.co/ClueAI/ChatYuan-large-v1)
+- [ChatYuan-large-v2](https://huggingface.co/ClueAI/ChatYuan-large-v2)
+    
+    
 
 ## 数据示例
     单条数据示例1
