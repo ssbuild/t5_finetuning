@@ -130,12 +130,8 @@ class NN_DataHelper(DataHelper):
         pos = 0
         ds = []
         while pos < len(input_ids):
-            input_ids_ = input_ids[pos: pos + max_seq_length - 3] + [tokenizer.eos_token_id]
-            if input_ids_[-2] == tokenizer.eos_token_id:
-                input_ids_ = input_ids_[:-1]
-
+            input_ids_ = input_ids[pos: pos + max_seq_length - 2] 
             pos += stride
-
             if len(input_ids_) <= 5:
                 continue
             seqlen = np.asarray(len(input_ids_), dtype=np.int32)
