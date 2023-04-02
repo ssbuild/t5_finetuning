@@ -2,25 +2,12 @@
 # @Author  : tk
 # @FileName: infer
 import torch
-import transformers
 from deep_training.data_helper import ModelArguments, DataArguments, TrainingArguments
-from deep_training.nlp.models.lora import LoraArguments, LoraModel
-from deep_training.nlp.models.transformer import TransformerForSeq2SeqLM
-from transformers import HfArgumentParser, T5Tokenizer, T5Config,T5ForConditionalGeneration
+from deep_training.nlp.models.lora import LoraArguments
+from transformers import HfArgumentParser
 
 from data_utils import train_info_args, postprocess, NN_DataHelper
-
-
-class MyTransformer(TransformerForSeq2SeqLM, with_pl=True):
-    def __init__(self, *args, **kwargs):
-        lora_args: LoraArguments = kwargs.pop('lora_args')
-        super(MyTransformer, self).__init__(*args, **kwargs)
-        self.lora_args = lora_args
-        if lora_args.with_lora:
-            model = LoraModel(self.backbone,lora_args)
-            print('*' * 30)
-            model.print_trainable_parameters()
-            self.set_model(model,copy_attr=False)
+from models import MyTransformer
 
 
 def generate_text(base_model,text,device = torch.device('cuda:0'),max_length=128):
@@ -52,31 +39,26 @@ if __name__ == '__main__':
     # 加载权重
     if not lora_args.with_lora:
         #非lora模式，可以按照 chatyuan官方 直接模式
-
-
-
-        model = MyTransformer.load_from_checkpoint('./best.pt',
+        pl_model = MyTransformer.load_from_checkpoint('./best.pt',
                                                    lora_args=lora_args,
                                                    config=config,
                                                    model_args=model_args,
                                                    training_args=training_args)
-        base_model: T5ForConditionalGeneration
-        base_model = model.backbone.model
+        base_model = pl_model.get_t5_model()
 
 
     else:
         # 加载权重
         lora_args = LoraArguments.from_pretrained('./best_ckpt')
         assert lora_args.inference_mode
-        pl_module = MyTransformer(lora_args=lora_args,
+        pl_model = MyTransformer(lora_args=lora_args,
                                   config=config,
                                   model_args=model_args,
                                   training_args=training_args)
         # 二次加载权重
-        pl_module.backbone.from_pretrained(pl_module.backbone.model, './best_ckpt')
+        pl_model.backbone.from_pretrained(pl_model.backbone.model, './best_ckpt')
 
-        base_model: transformers.T5ForConditionalGeneration
-        base_model = pl_module.backbone.model.model
+        base_model = pl_model.get_t5_model()
 
 
 

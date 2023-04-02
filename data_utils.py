@@ -119,10 +119,10 @@ class NN_DataHelper(DataHelper):
         input_ids = []
         for idx, (question,answer) in enumerate(examples):
             text = question + answer
-            o = tokenizer.encode_plus(text=text, return_attention_mask=False,return_token_type_ids=False)
-            if len(o['input_ids']) <= 3:
+            ids = tokenizer.encode(text=text)
+            if len(ids) <= 3:
                 continue
-            input_ids += o['input_ids']
+            input_ids += ids
 
         pos = 0
         ds = []

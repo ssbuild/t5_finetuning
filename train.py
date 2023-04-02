@@ -12,18 +12,8 @@ from pytorch_lightning import Trainer
 from transformers import HfArgumentParser, T5Tokenizer, T5Config
 
 from data_utils import NN_DataHelper, train_info_args, preprocess, postprocess
+from models import MyTransformer
 
-
-class MyTransformer(TransformerForSeq2SeqLM, with_pl=True):
-    def __init__(self, *args, **kwargs):
-        lora_args: LoraArguments = kwargs.pop('lora_args')
-        super(MyTransformer, self).__init__(*args, **kwargs)
-        self.lora_args = lora_args
-        if lora_args.with_lora:
-            model = LoraModel(self.backbone,lora_args)
-            print('*' * 30)
-            model.print_trainable_parameters()
-            self.set_model(model,copy_attr=False)
 
 class MySimpleModelCheckpoint(SimpleModelCheckpoint):
     def __init__(self, *args, **kwargs):
@@ -196,13 +186,12 @@ if __name__ == '__main__':
     else:
         # 加载权重
         if not lora_args.with_lora:
-            model = MyTransformer.load_from_checkpoint('./best.pt',
+            pl_module = MyTransformer.load_from_checkpoint('./best.pt',
                                                        lora_args=lora_args,
                                                        config=config,
                                                        model_args=model_args,
                                                        training_args=training_args)
-            model_: transformers.T5ForConditionalGeneration
-            model_ = model.backbone.model
+            model_ = pl_module.get_t5_model()
             #保存权重, 可选上传至huggingface
             tokenizer: T5Tokenizer
             config: T5Config
@@ -210,24 +199,23 @@ if __name__ == '__main__':
             config.save_pretrained('chatyuan_finetuning')
             model_.save_pretrained('chatyuan_finetuning', push_to_hub = False,max_shard_size= "10GB")
 
-
-            #转换onnx 模型
-            input_sample = (
-                ("input_ids", torch.ones(size=(1, 128), dtype=torch.int32)),
-                ("attention_mask", torch.ones(size=(1, 128), dtype=torch.int32)),
-                ("decoder_input_ids", torch.ones(size=(1, 128), dtype=torch.int32)),
-                ("decoder_attention_mask", torch.ones(size=(1, 128), dtype=torch.int32)),
-            )
-            input_names = ("input_ids", "attention_mask", "decoder_input_ids", "decoder_attention_mask")
-            output_names = ("pred_ids",)
-            dynamic_axes = None or {"input_ids": [0, 1], "attention_mask": [0, 1],
-                                    "decoder_input_ids": [0, 1], "decoder_attention_mask": [0, 1],
-                                    "pred_ids": [0, 1]}
-            model.convert_to_onnx('./best.onnx',
-                                  input_sample=input_sample,
-                                  input_names=input_names,
-                                  output_names=output_names,
-                                  dynamic_axes=dynamic_axes)
+            # #转换onnx 模型
+            # input_sample = (
+            #     ("input_ids", torch.ones(size=(1, 128), dtype=torch.int32)),
+            #     ("attention_mask", torch.ones(size=(1, 128), dtype=torch.int32)),
+            #     ("decoder_input_ids", torch.ones(size=(1, 128), dtype=torch.int32)),
+            #     ("decoder_attention_mask", torch.ones(size=(1, 128), dtype=torch.int32)),
+            # )
+            # input_names = ("input_ids", "attention_mask", "decoder_input_ids", "decoder_attention_mask")
+            # output_names = ("pred_ids",)
+            # dynamic_axes = None or {"input_ids": [0, 1], "attention_mask": [0, 1],
+            #                         "decoder_input_ids": [0, 1], "decoder_attention_mask": [0, 1],
+            #                         "pred_ids": [0, 1]}
+            # pl_module.convert_to_onnx('./best.onnx',
+            #                       input_sample=input_sample,
+            #                       input_names=input_names,
+            #                       output_names=output_names,
+            #                       dynamic_axes=dynamic_axes)
         else:
             #加载权重
             lora_args = LoraArguments.from_pretrained('./best_ckpt')
@@ -237,6 +225,4 @@ if __name__ == '__main__':
                                       training_args=training_args)
             #二次加载权重
             pl_module.backbone.from_pretrained(pl_module.backbone.model,'./best_ckpt')
-
-            model_: transformers.T5ForConditionalGeneration
-            model_ = pl_module.backbone.model.model
+            model_ = pl_module.get_t5_model()
