@@ -60,7 +60,8 @@ if __name__ == '__main__':
 
         base_model = pl_model.get_t5_model()
 
-
+    base_model.eval()
+    base_model.cuda()
 
 
 
