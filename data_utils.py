@@ -40,6 +40,26 @@ train_info_args = {
     'test_batch_size': 2,
     'optimizer': 'lion', # one of adamw,adam,lamb,lion
     'learning_rate': 5e-5, # lora 调大学习率 1e-3
+
+    # 'scheduler_type': 'linear',# one of [linear,WarmupCosine,CAWR,CAL,Step,ReduceLROnPlateau
+    # 'scheduler': None,
+
+    # 切换scheduler类型
+    # 'scheduler_type': 'WarmupCosine',
+    # 'scheduler': None,
+
+    # 'scheduler_type': 'ReduceLROnPlateau',
+    # 'scheduler': None,
+
+    # 'scheduler_type': 'Step',
+    # 'scheduler':{ 'decay_rate': 0.999,'decay_steps': 100,'verbose': True},
+
+    # 'scheduler_type': 'CAWR',
+    # 'scheduler':{'T_mult': 1, 'rewarm_epoch_num': 2, 'verbose': True},
+
+    # 'scheduler_type': 'CAL',
+    # 'scheduler': {'rewarm_epoch_num': 2,'verbose': True},
+    'optimizer_betas': (0.9, 0.999),
     'adam_epsilon': 1e-8,
     'gradient_accumulation_steps': 1,
     'max_grad_norm': 1.0,
@@ -51,7 +71,6 @@ train_info_args = {
 
     ##############  lora模块
     'with_lora': False,  # 是否启用lora模块
-    'lora_model_name_or_path': None, #预训练权重
     'inference_mode': False,
     'r': 8,
     'target_modules': ['q', 'v'],
@@ -59,8 +78,6 @@ train_info_args = {
     # 'enable_lora': [True],
     'enable_lora': None,
     'lora_dropout': 0.1,
-    'merge_weights': False,
-    'fan_in_fan_out': False,
     'bias': 'none',  # Bias type for Lora. Can be 'none', 'all' or 'lora_only'"
 }
 

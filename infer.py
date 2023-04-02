@@ -67,6 +67,7 @@ if __name__ == '__main__':
     else:
         # 加载权重
         lora_args = LoraArguments.from_pretrained('./best_ckpt')
+        assert lora_args.inference_mode
         pl_module = MyTransformer(lora_args=lora_args,
                                   config=config,
                                   model_args=model_args,
