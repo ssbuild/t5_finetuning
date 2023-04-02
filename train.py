@@ -146,14 +146,14 @@ if __name__ == '__main__':
         callbacks=[checkpoint_callback],
         max_epochs=training_args.max_epochs,
         max_steps=training_args.max_steps,
-        accelerator="gpu",replace_sampler_ddp=False,
+        accelerator="gpu",
         devices=data_args.devices,
         enable_progress_bar=True,
         default_root_dir=data_args.output_dir,
         gradient_clip_val=training_args.max_grad_norm,
         accumulate_grad_batches=training_args.gradient_accumulation_steps,
         num_sanity_val_steps=0,
-        strategy='ddp' if torch.cuda.device_count() > 1 else None,
+        strategy='ddp' if torch.cuda.device_count() > 1 else 'auto',
     )
 
     dataHelper = NN_DataHelper(model_args, training_args, data_args)
@@ -175,14 +175,14 @@ if __name__ == '__main__':
     model = MyTransformer(lora_args=lora_args,config=config,model_args=model_args, training_args=training_args)
 
     if not data_args.convert_onnx:
-        train_datasets = dataHelper.load_random_sampler(dataHelper.train_files,
-                                                        batch_size=training_args.train_batch_size,
-                                                        collate_fn=dataHelper.collate_fn,
-                                                        shuffle=True,
-                                                        infinite=True,
-                                                        with_load_memory=True,
-                                                        num_processes=trainer.world_size,
-                                                        process_index=trainer.global_rank)
+        train_datasets = dataHelper.load_distributed_random_sampler(
+            dataHelper.train_files,
+            with_load_memory=True,
+            collate_fn=dataHelper.collate_fn,
+            batch_size=training_args.train_batch_size,
+            drop_last=True,  # 多卡建议扔掉
+            num_processes=trainer.world_size, process_index=trainer.global_rank)
+
         if train_datasets is not None:
             trainer.fit(model, train_dataloaders=train_datasets)
         # else:
