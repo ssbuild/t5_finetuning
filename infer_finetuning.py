@@ -3,11 +3,9 @@
 # @FileName: infer
 import torch
 from deep_training.data_helper import ModelArguments, DataArguments, TrainingArguments
-from deep_training.nlp.models.lora import LoraArguments
 from transformers import HfArgumentParser
-
+from models import MyTransformer,LoraArguments
 from data_utils import train_info_args, postprocess, NN_DataHelper
-from models import MyTransformer
 
 
 def generate_text(base_model,text,device = torch.device('cuda:0'),max_length=128):
