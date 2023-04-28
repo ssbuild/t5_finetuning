@@ -231,10 +231,8 @@ class NN_DataHelper(DataHelper):
                     q = session['q']
                     answers_list = session['a']
                     q = preprocess('用户：' + q + '小元：' )
-                    answers = ''
-                    for a in answers_list:
-                        answers += preprocess(a + '\n')
-                    sub.append((q,answers))
+                    answer = preprocess('\n'.join(answers_list)) if isinstance(answers_list,list) else answers_list
+                    sub.append((q,answer))
                 D.append(copy.deepcopy(sub))
                 sub.clear()
 

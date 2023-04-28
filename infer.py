@@ -1,71 +1,59 @@
-# @Time    : 2023/3/19 18:15
+# @Time    : 2023/3/19 18:25
 # @Author  : tk
-# @FileName: infer
+# @FileName: infer_chatyuan
+
+
+# 使用
 import torch
-from deep_training.data_helper import ModelArguments, DataArguments, TrainingArguments
-from deep_training.nlp.models.lora import LoraArguments
-from transformers import HfArgumentParser
-
-from data_utils import train_info_args, postprocess, NN_DataHelper
-from models import MyTransformer
+from transformers import AutoTokenizer, T5Tokenizer, T5ForConditionalGeneration
 
 
-def generate_text(base_model,text,device = torch.device('cuda:0'),max_length=128):
-    input_text = "用户：" + text + "\n小元："
-
-    o = tokenizer.encode_plus(input_text, truncation=True, max_length=512, return_attention_mask=False,return_token_type_ids=False)
-    input_ids= [o['input_ids']]
-    input_ids = torch.tensor(input_ids, dtype=torch.int32,device=device)
-
-    logits = base_model.generate(input_ids,max_length=max_length,bos_token_id=config.decoder_start_token_id,
-                            pad_token_id=config.pad_token_id,
-                            eos_token_id=config.eos_token_id)
+tokenizer = T5Tokenizer.from_pretrained("./best_ckpt")
+model = T5ForConditionalGeneration.from_pretrained("./best_ckpt")
+# 修改colab笔记本设置为gpu，推理更快
+device = torch.device('cuda')
+model.to(device)
 
 
-    out_text = tokenizer.decode(logits[0], skip_special_tokens=True)
-    out_text = postprocess(out_text)
-    return out_text
-
-if __name__ == '__main__':
-
-    parser = HfArgumentParser((ModelArguments, TrainingArguments, DataArguments, LoraArguments))
-    model_args, training_args, data_args, lora_args = parser.parse_dict(train_info_args)
+def preprocess(text):
+    text = text.replace("\n", "\\n").replace("\t", "\\t")
+    return text
 
 
-
-    dataHelper = NN_DataHelper(model_args, training_args, data_args)
-    tokenizer, config, _,_= dataHelper.load_tokenizer_and_config()
-
-    # 加载权重
-    if not lora_args.with_lora:
-        #非lora模式，可以按照 chatyuan官方 直接模式
-        pl_model = MyTransformer.load_from_checkpoint('./best.pt',
-                                                   lora_args=lora_args,
-                                                   config=config,
-                                                   model_args=model_args,
-                                                   training_args=training_args)
-        base_model = pl_model.get_t5_model()
+def postprocess(text):
+    return text.replace("\\n", "\n").replace("\\t", "\t")
 
 
+def answer(text, sample=True, top_p=1, temperature=0.7):
+    '''sample：是否抽样。生成任务，可以设置为True;
+    top_p：0-1之间，生成的内容越多样'''
+    text = preprocess(text)
+    encoding = tokenizer(text=[text], truncation=True, padding=True, max_length=768, return_tensors="pt").to(
+        device)
+    if not sample:
+        out = model.generate(**encoding, return_dict_in_generate=True, output_scores=False, max_new_tokens=512,
+                             num_beams=1, length_penalty=0.6)
     else:
-        # 加载权重
-        lora_args = LoraArguments.from_pretrained('./best_ckpt')
-        assert lora_args.inference_mode
-        pl_model = MyTransformer(lora_args=lora_args,
-                                  config=config,
-                                  model_args=model_args,
-                                  training_args=training_args)
-        # 二次加载权重
-        pl_model.backbone.from_pretrained(pl_model.backbone.model, './best_ckpt')
-
-        base_model = pl_model.get_t5_model()
-
-    base_model.eval()
-    base_model.cuda()
+        out = model.generate(**encoding, return_dict_in_generate=True, output_scores=False, max_new_tokens=512,
+                             do_sample=True, top_p=top_p, temperature=temperature, no_repeat_ngram_size=3)
+    out_text = tokenizer.batch_decode(out["sequences"], skip_special_tokens=True)
+    return postprocess(out_text[0])
 
 
 
-    text= "帮我写一个请假条，我因为新冠不舒服，需要请假3天，请领导批准"
-    output = generate_text(base_model,text)
-    print('input',text)
-    print('output',output)
+
+input_text0 = "帮我写一个请假条，我因为新冠不舒服，需要请假3天，请领导批准"
+input_text1 = "你能干什么"
+input_text2 = "写一封英文商务邮件给英国客户，表达因为物流延误，不能如期到达，我们可以赔偿贵公司所有损失"
+input_text3 = "写一个文章，题目是未来城市"
+input_text4 = "写一个诗歌，关于冬天"
+input_text5 = "从南京到上海的路线"
+input_text6 = "学前教育专业岗位实习中，在学生方面会存在问题，请提出改进措施。800字"
+input_text7 = "根据标题生成文章：标题：屈臣氏里的化妆品到底怎么样？正文：化妆品，要讲究科学运用，合理搭配。屈臣氏起码是正品连锁店。请继续后面的文字。"
+input_text8 = "帮我对比几款GPU，列出详细参数对比，并且给出最终结论"
+input_list = [input_text0, input_text1, input_text2, input_text3, input_text4, input_text5, input_text6, input_text7, input_text8]
+for i, input_text in enumerate(input_list):
+  input_text = "用户：" + input_text + "\n小元："
+  print(f"示例{i}".center(50, "="))
+  output_text = answer(input_text)
+  print(f"{input_text}{output_text}")

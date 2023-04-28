@@ -8,7 +8,7 @@ from deep_training.data_helper import ModelArguments, DataArguments, TrainingArg
 from deep_training.nlp.models.lora import LoraModel, LoraArguments
 from deep_training.nlp.models.transformer import TransformerForSeq2SeqLM
 from deep_training.utils.trainer import SimpleModelCheckpoint
-from pytorch_lightning import Trainer
+from lightning import Trainer
 from transformers import HfArgumentParser, T5Tokenizer, T5Config
 
 from data_utils import NN_DataHelper, train_info_args, preprocess, postprocess
