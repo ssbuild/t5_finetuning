@@ -42,7 +42,7 @@ if __name__ == '__main__':
                                                    config=config,
                                                    model_args=model_args,
                                                    training_args=training_args)
-        base_model = pl_model.get_t5_model()
+        base_model = pl_model.get_llm_model()
 
 
     else:
@@ -56,7 +56,7 @@ if __name__ == '__main__':
         # 二次加载权重
         pl_model.backbone.from_pretrained(pl_model.backbone.model, './best_ckpt')
 
-        base_model = pl_model.get_t5_model()
+        base_model = pl_model.get_llm_model()
 
     base_model.eval()
     base_model.cuda()

@@ -1,21 +1,17 @@
 ## 安装
-
 - pip install -U deep_training >= 0.1.3
-- 当前文档版本pypi 0.1.3
 
 ## 更新详情
-
 - [deep_training](https://github.com/ssbuild/deep_training)
 
 ## 深度学习常规任务例子
 
-- [deep_training-pytorch-example](https://github.com/ssbuild/deep_training-pytorch-example)
-- [deep_training-tf-example](https://github.com/ssbuild/deep_training-tf-example)
+- [pytorch-task-example](https://github.com/ssbuild/pytorch-task-example)
 
 
-## clue-chat finetuning 
 
-    预训练模型下载
+## 预训练模型下载
+
 - [ChatYuan-large-v1](https://huggingface.co/ClueAI/ChatYuan-large-v1)
 - [ChatYuan-large-v2](https://huggingface.co/ClueAI/ChatYuan-large-v2)
     

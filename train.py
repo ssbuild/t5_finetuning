@@ -40,9 +40,8 @@ class MySimpleModelCheckpoint(SimpleModelCheckpoint):
 
         model: transformers.T5ForConditionalGeneration
         if pl_module.lora_args.with_lora: # lora 从权重加载模型
-            model = pl_module.backbone.model.model
-            model.to(device)
-            model.eval()
+            model = pl_module.get_llm_model()
+            model.eval().to(device)
         else:
             model = pl_module.backbone.model
 
@@ -187,7 +186,7 @@ if __name__ == '__main__':
                                                        config=config,
                                                        model_args=model_args,
                                                        training_args=training_args)
-            model_ = pl_module.get_t5_model()
+            model_ = pl_module.get_llm_model()
             #保存权重, 可选上传至huggingface
             tokenizer: T5Tokenizer
             config: T5Config
@@ -221,4 +220,4 @@ if __name__ == '__main__':
                                       training_args=training_args)
             #二次加载权重
             pl_module.backbone.from_pretrained(pl_module.backbone.model,'./best_ckpt')
-            model_ = pl_module.get_t5_model()
+            model_ = pl_module.get_llm_model()
