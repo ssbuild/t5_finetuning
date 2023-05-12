@@ -1,23 +1,21 @@
-## 安装
+## install
 - pip install -U deep_training >= 0.1.3
 
-## 更新详情
+## update information
+
 - [deep_training](https://github.com/ssbuild/deep_training)
 
-## 深度学习常规任务例子
-
-- [pytorch-task-example](https://github.com/ssbuild/pytorch-task-example)
 
 
 
-## 预训练模型下载
+## weight
 
 - [ChatYuan-large-v1](https://huggingface.co/ClueAI/ChatYuan-large-v1)
 - [ChatYuan-large-v2](https://huggingface.co/ClueAI/ChatYuan-large-v2)
     
     
 
-## 数据示例
+## data sample
     单条数据示例
     {
         "id": 0, "paragraph": [
@@ -43,7 +41,7 @@
         #滑动窗口 , 数据多则相应增大，否则减小 ,stride <=0 则禁用滑动窗口
     }
 
-## 生成训练record
+## generate record
 
     python data_utils.py
     
@@ -52,11 +50,26 @@
     dataHelper.make_dataset_with_args(data_args.train_file,mixed_data=False, shuffle=True,mode='train',num_process_worker=0)
 
 
-## 训练
+## finetuning
 
     python train.py
 
-## 推理
+## infer
     
     infer.py   只能推理微调模型 (权重参考train.py 最后部分转换) 
     infer_chatyuan.py  推理微调模型和lora模型
+
+## 友情链接
+
+- [pytorch-task-example](https://github.com/ssbuild/pytorch-task-example)
+- [tf-task-example](https://github.com/ssbuild/tf-task-example)
+- [chatmoss_finetuning](https://github.com/ssbuild/chatmoss_finetuning)
+- [chatglm_finetuning](https://github.com/ssbuild/chatglm_finetuning)
+- [chatyuan_finetuning](https://github.com/ssbuild/chatyuan_finetuning)
+- [llm_finetuning](https://github.com/ssbuild/llm_finetuning)
+- [rlhf_llm](https://github.com/ssbuild/rlhf_llm)
+- [rlhf_chatglm](https://github.com/ssbuild/rlhf_chatglm)
+- [rlhf_chatyuan](https://github.com/ssbuild/rlhf_chatyuan)
+
+## 
+    纯粹而干净的代码
