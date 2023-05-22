@@ -139,6 +139,8 @@ if __name__ == '__main__':
         accumulate_grad_batches=training_args.gradient_accumulation_steps,
         num_sanity_val_steps=0,
         strategy='ddp' if torch.cuda.device_count() > 1 else 'auto',
+        precision='16'  # #可以自行尝试  "32": "32-true", "16": "16-mixed", "bf16": "bf16-mixed"
+        # precision='16-mixed',#混合精度训练
     )
 
     dataHelper = NN_DataHelper(model_args, training_args, data_args)
@@ -158,6 +160,7 @@ if __name__ == '__main__':
 
 
     model = MyTransformer(lora_args=lora_args,config=config,model_args=model_args, training_args=training_args)
+    model.float()
 
     if not data_args.convert_onnx:
         train_datasets = dataHelper.load_distributed_random_sampler(
@@ -170,14 +173,7 @@ if __name__ == '__main__':
 
         if train_datasets is not None:
             trainer.fit(model, train_dataloaders=train_datasets)
-        # else:
-        #     eval_datasets = dataHelper.load_sequential_sampler(dataHelper.eval_files,batch_size=training_args.eval_batch_size,collate_fn=dataHelper.collate_fn)
-        #     test_datasets = dataHelper.load_sequential_sampler(dataHelper.test_files,batch_size=training_args.test_batch_size,collate_fn=dataHelper.collate_fn)
-        #     if eval_datasets is not None:
-        #         trainer.validate(model, dataloaders=eval_datasets, ckpt_path='./best.pt')
-        #
-        #     if test_datasets is not None:
-        #         trainer.test(model, dataloaders=test_datasets, ckpt_path='best.pt')
+
     else:
         # 加载权重
         if not lora_args.with_lora:
