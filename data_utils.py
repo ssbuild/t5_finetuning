@@ -8,81 +8,14 @@ import json
 import os
 import random
 import typing
-
 import numpy as np
 import torch
 from deep_training.data_helper import DataHelper, ModelArguments, TrainingArguments, DataArguments
 from models import LoraArguments
-from deep_training.utils.func import is_chinese_char
 from fastdatasets.record import load_dataset as Loader, RECORD, WriterObject, gfile
 from tqdm import tqdm
 from transformers import T5Tokenizer, HfArgumentParser, T5Config
-
-train_info_args = {
-    'devices': 1,
-    'data_backend': 'record',
-    'model_type': 't5',
-    # 预训练模型路径 , 从0训练，则置空
-    'model_name_or_path': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1',
-    'tokenizer_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1',
-    'config_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1/config.json',
-    # 'model_name_or_path': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v2',
-    # 'tokenizer_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v2',
-    # 'config_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v2/config.json',
-    # 'model_name_or_path': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5',
-    # 'tokenizer_name': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5',
-    # 'config_name': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5/config.json',
-    'convert_onnx': False, # 转换onnx模型
-    'do_train': True,
-    'convert_file': True, # train_file是否需要制作record , 如果已经制作好，可以不需要原语料文件，train_file 为制作好的record 文件list
-    'train_file':  [ './data/finetune_train_examples.json'],
-    'max_epochs': 3,
-    'max_steps': -1,
-    'train_batch_size': 4,
-    'eval_batch_size': 2,
-    'test_batch_size': 2,
-    'optimizer': 'lion', # one of adamw,adam,lamb,lion
-    'learning_rate': 5e-5, # lora 调大学习率 1e-3
-
-    # 'scheduler_type': 'linear',# one of [linear,WarmupCosine,CAWR,CAL,Step,ReduceLROnPlateau
-    # 'scheduler': None,
-
-    # 切换scheduler类型
-    # 'scheduler_type': 'WarmupCosine',
-    # 'scheduler': None,
-
-    # 'scheduler_type': 'ReduceLROnPlateau',
-    # 'scheduler': None,
-
-    # 'scheduler_type': 'Step',
-    # 'scheduler':{ 'decay_rate': 0.999,'decay_steps': 100,'verbose': True},
-
-    # 'scheduler_type': 'CAWR',
-    # 'scheduler':{'T_mult': 1, 'rewarm_epoch_num': 2, 'verbose': True},
-
-    # 'scheduler_type': 'CAL',
-    # 'scheduler': {'rewarm_epoch_num': 2,'verbose': True},
-    'optimizer_betas': (0.9, 0.999),
-    'adam_epsilon': 1e-8,
-    'gradient_accumulation_steps': 1,
-    'max_grad_norm': 1.0,
-    'weight_decay': 0,
-    'warmup_steps': 0,
-    'output_dir': './output',
-    'max_seq_length': 512,
-    'max_target_length': 100,  # 预测最大长度
-
-    ##############  lora模块
-    'with_lora': False,  # 是否启用lora模块
-    'inference_mode': False,
-    'r': 8,
-    'target_modules': ['q', 'v'],
-    'lora_alpha': 32,
-    # 'enable_lora': [True],
-    'enable_lora': None,
-    'lora_dropout': 0.1,
-    'bias': 'none',  # Bias type for Lora. Can be 'none', 'all' or 'lora_only'"
-}
+from config import *
 
 data_conf = {
     # 滑动窗口 ， 数据多则相应增大，否则减小 ,stride <=0 则禁用滑动窗口
@@ -90,10 +23,8 @@ data_conf = {
     'stride': 0,
 }
 
-
 def preprocess(text):
-  text = text.replace("\n", "\\n").replace("\t", "\\t")
-  return text
+  return text.replace("\n", "\\n").replace("\t", "\\t")
 
 def postprocess(text):
   return text.replace("\\n", "\n").replace("\\t", "\t")
@@ -327,6 +258,7 @@ class NN_DataHelper(DataHelper):
 if __name__ == '__main__':
     parser = HfArgumentParser((ModelArguments, TrainingArguments, DataArguments, LoraArguments))
     model_args, training_args, data_args, lora_args = parser.parse_dict(train_info_args)
+    lora_args = lora_args.config
 
     dataHelper = NN_DataHelper(model_args, training_args, data_args)
     tokenizer, config, label2id, id2label = dataHelper.load_tokenizer_and_config()

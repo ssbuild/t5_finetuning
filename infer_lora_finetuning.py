@@ -6,8 +6,6 @@ import os
 import torch
 from deep_training.data_helper import ModelArguments, DataArguments, TrainingArguments
 from transformers import HfArgumentParser
-
-from config import get_deepspeed_config
 from models import MyTransformer,LoraArguments
 from data_utils import train_info_args, postprocess, NN_DataHelper
 
@@ -28,41 +26,33 @@ def generate_text(base_model,text,device = torch.device('cuda:0'),max_length=128
     out_text = postprocess(out_text)
     return out_text
 
-
-deep_config = get_deepspeed_config()
-
 if __name__ == '__main__':
+
     parser = HfArgumentParser((ModelArguments, DataArguments))
-    model_args, data_args = parser.parse_dict(train_info_args, allow_extra_keys=True)
-
-
+    model_args, data_args = parser.parse_dict(train_info_args,allow_extra_keys=True)
 
     dataHelper = NN_DataHelper(model_args, None, data_args)
     tokenizer, config, _,_= dataHelper.load_tokenizer_and_config()
 
-    pl_model = MyTransformer(config=config, model_args=model_args)
+    ckpt_dir = './best_ckpt'
+    lora_args = LoraArguments.from_pretrained(ckpt_dir)
+    assert lora_args.inference_mode == True
+    pl_model = MyTransformer(config=config,model_args=model_args,lora_args=lora_args)
 
-    ###################### 注意 选最新权重
-    # 选择最新的权重 ， 根据时间排序 选最新的
 
-    if deep_config is None:
-        train_weight = './best_ckpt/last-v3.ckpt'
-        assert os.path.exists(train_weight)
+    # 加载lora权重
+    pl_model.load_sft_weight(ckpt_dir)
 
+    enable_merge_weight = False
+    if enable_merge_weight:
+        # 合并lora 权重 保存
+        pl_model.save_sft_weight(os.path.join(ckpt_dir, 'pytorch_model_merge.bin'), merge_lora_weight=True)
     else:
-        # 建议直接使用转换脚本命令 支持 deepspeed stage 0,1,2,3， 生成 ./best_ckpt/last.ckpt/best.pt 权重文件
-        # cd best_ckpt/last.ckpt
-        # python zero_to_fp32.py . best.pt
-        train_weight = './best_ckpt/last.ckpt/best.pt'
+        model = pl_model.get_llm_model()
+        model.eval().cuda()
 
 
-    #加载权重
-    pl_model.load_sft_weight('./best.pt')
-
-    model = pl_model.get_llm_model()
-    model.eval().cuda()
-
-    text= "帮我写一个请假条，我因为新冠不舒服，需要请假3天，请领导批准"
-    output = generate_text(model,text)
-    print('input',text)
-    print('output',output)
+        text= "帮我写一个请假条，我因为新冠不舒服，需要请假3天，请领导批准"
+        output = generate_text(model,text)
+        print('input',text)
+        print('output',output)

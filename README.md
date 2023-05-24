@@ -1,9 +1,12 @@
-## install
-- pip install -U deep_training >= 0.1.3
-
 ## update information
+   - [deep_training](https://github.com/ssbuild/deep_training)
 
-- [deep_training](https://github.com/ssbuild/deep_training)
+```text
+    05-24 lora v2
+```
+
+## install
+  - pip install -i https://pypi.org/simple -U deep_training==0.1.8 transformers>=4.28 deepspeed
 
 
 
@@ -56,8 +59,9 @@
 
 ## infer
     
-    infer.py   只能推理微调模型 (权重参考train.py 最后部分转换) 
-    infer_chatyuan.py  推理微调模型和lora模型
+    infer.py 推理官方模型权重
+    infer_finetuning.py  推理微调模型权重
+    infer_lora_finetuning.py 和lora 微调模型权重
 
 ## 友情链接
 
