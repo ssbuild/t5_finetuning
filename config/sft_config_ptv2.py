@@ -28,7 +28,7 @@ if global_args['load_in_4bit'] != True:
 
 
 prompt_info_args = {
-    "with_prompt": False,
+    "with_prompt": True,
     "prompt_type": "prefix_tuning", # one of prompt_tuning,p_tuning,prefix_tuning,adaption_prompt
     "task_type": "seq_2_seq_lm", #  one of seq_cls,seq_2_seq_lm,causal_lm,token_cls
     "prefix_projection": False, # Whether to project the prefix tokens"

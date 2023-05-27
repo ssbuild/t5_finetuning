@@ -56,7 +56,7 @@ if __name__ == '__main__':
 
 
     #加载权重
-    pl_model.load_sft_weight('./best.pt')
+    pl_model.load_sft_weight(train_weight)
 
     model = pl_model.get_llm_model()
     model.eval().cuda()

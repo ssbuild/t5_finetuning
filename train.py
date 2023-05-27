@@ -73,6 +73,7 @@ if __name__ == '__main__':
 
     dataHelper = NN_DataHelper(model_args, training_args, data_args)
     tokenizer, config, label2id, id2label = dataHelper.load_tokenizer_and_config()
+    config.save_pretrained('best_ckpt')
 
     # 缓存数据集
     if data_args.do_train:
@@ -88,7 +89,7 @@ if __name__ == '__main__':
     if deepspeed_config is not None and len(deepspeed_config):
         strategy = DeepSpeedStrategy(config=deepspeed_config, )
 
-    if lora_args:
+    if lora_args or prompt_args:
         assert deepspeed_config is None, ValueError('lora mode does not support deepspeed')
         checkpoint_callback = MySimpleModelCheckpoint(
             # monitor="loss",
@@ -99,6 +100,7 @@ if __name__ == '__main__':
             model_args=model_args,
             training_args=training_args,
             lora_args=lora_args,
+            prompt_args=prompt_args
         )
     else:
         checkpoint_callback = ModelCheckpoint(
