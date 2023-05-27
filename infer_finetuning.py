@@ -18,9 +18,9 @@ def generate_text(base_model,text,device = torch.device('cuda:0'),max_length=128
     input_ids= [o['input_ids']]
     input_ids = torch.tensor(input_ids, dtype=torch.int32,device=device)
 
-    logits = base_model.generate(input_ids,max_length=max_length,bos_token_id=config.decoder_start_token_id,
-                            pad_token_id=config.pad_token_id,
-                            eos_token_id=config.eos_token_id)
+    logits = base_model.generate(input_ids=input_ids, max_length=max_length, bos_token_id=config.decoder_start_token_id,
+                                 pad_token_id=config.pad_token_id,
+                                 eos_token_id=config.eos_token_id)
 
 
     out_text = tokenizer.decode(logits[0], skip_special_tokens=True)
