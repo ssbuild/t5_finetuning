@@ -2,11 +2,12 @@
    - [deep_training](https://github.com/ssbuild/deep_training)
 
 ```text
+    05-27 add qlora transformers>=4.30
     05-24 lora v2
 ```
 
 ## install
-  - pip install -i https://pypi.org/simple -U deep_training==0.1.8 transformers>=4.28 deepspeed
+  - pip install -i https://pypi.org/simple -U -r requirements.txt
 
 
 
@@ -44,24 +45,58 @@
         #滑动窗口 , 数据多则相应增大，否则减小 ,stride <=0 则禁用滑动窗口
     }
 
-## generate record
 
-    python data_utils.py
-    
-    注:
-    num_process_worker 为多进程制作数据 ， 如果数据量较大 ， 适当调大至cpu数量
-    dataHelper.make_dataset_with_args(data_args.train_file,mixed_data=False, shuffle=True,mode='train',num_process_worker=0)
+## 切换训练模式配置
+    修改 config/__init__.py       “from config.sft_config import *”  切换配置文件
+    config/sft_config.py            finetuning
+    config/sft_config_lora.py       lora finetuning
+    config/sft_config_lora_int4.py  lora int4 finetuning
+    config/sft_config_lora_int8.py  lora int8 finetuning
+    config/sft_config_ptv2.py       lora p-tuning-v2 finetuning
 
 
-## finetuning
-
-    python train.py
 
 ## infer
+    # infer_finetuning.py 推理微调模型
+    # infer_lora_finetuning.py 推理微调模型
+    # infer_ptuning.py 推理p-tuning-v2微调模型
+     python infer_finetuning.py
+
+
+
+## training
+```text
+    #制作数据
+    python data_utils.py
+    注: num_process_worker 为多进程制作数据 ， 如果数据量较大 ， 适当调大至cpu数量
+    dataHelper.make_dataset_with_args(data_args.train_file,mixed_data=False, shuffle=True,mode='train',num_process_worker=0)
     
-    infer.py 推理官方模型权重
-    infer_finetuning.py  推理微调模型权重
-    infer_lora_finetuning.py 和lora 微调模型权重
+    #训练
+    python train.py
+```
+   
+
+### 单机多卡
+```text
+可见的前两块卡
+train_info_args = {
+    'devices': 2,
+}
+
+# 第一块 和 第三块卡
+train_info_args = {
+    'devices': [0,2],
+}
+```
+
+### 多机多卡训练
+```text
+例子 3个机器 每个机器 4个卡
+修改train.py Trainer num_nodes = 3
+MASTER_ADDR=10.0.0.1 MASTER_PORT=6667 WORLD_SIZE=12 NODE_RANK=0 python train.py 
+MASTER_ADDR=10.0.0.1 MASTER_PORT=6667 WORLD_SIZE=12 NODE_RANK=1 python train.py 
+MASTER_ADDR=10.0.0.1 MASTER_PORT=6667 WORLD_SIZE=12 NODE_RANK=2 python train.py 
+```
 
 ## 友情链接
 

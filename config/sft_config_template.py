@@ -26,7 +26,62 @@ global_args = {
 if global_args['load_in_4bit'] != True:
     global_args['quantization_config'] = None
 
+# 默认禁用lora 相关模块 , lora 和 adalora 只能同时启用一个
+lora_info_args = {
+    'with_lora': True,  # 是否启用lora模块
+    'lora_type': 'lora',
+    'r': 8,
+    'target_modules': ['q', 'v'],
+    #'target_modules': ['query_key_value'],  # bloom,gpt_neox
+    # 'target_modules': ["q_proj", "v_proj"], #llama,opt,gptj,gpt_neo
+    # 'target_modules': ['c_attn'], #gpt2
+    'lora_alpha': 32,
+    'lora_dropout': 0.1,
+    'fan_in_fan_out': False,
+    'bias': 'none',  # Bias type for Lora. Can be 'none', 'all' or 'lora_only'"
+    'modules_to_save' : None, # "help": "List of modules apart from LoRA layers to be set as trainable and saved in the final checkpoint. "
+}
 
+adalora_info_args = {
+    'with_lora': False,  # 是否启用adalora模块
+    'lora_type': 'adalora',
+    'r': 8,
+    'target_modules': ['q', 'v'],
+    #'target_modules': ['query_key_value'],  # bloom,gpt_neox
+    # 'target_modules': ["q_proj", "v_proj"], #llama,opt,gptj,gpt_neo
+    # 'target_modules': ['c_attn'], #gpt2
+    'lora_alpha': 32,
+    'lora_dropout': 0.1,
+    'fan_in_fan_out': False,
+    'bias': 'none',  # Bias type for Lora. Can be 'none', 'all' or 'lora_only'"
+    'modules_to_save' : None, # "help": "List of modules apart from LoRA layers to be set as trainable and saved in the final checkpoint. "
+
+    'target_r':8, # Target Lora matrix dimension.
+    'init_r': 12, #Intial Lora matrix dimension.
+    'tinit': 0, #The steps of initial warmup.
+    'tfinal': 0, #The steps of final warmup.
+    'deltaT': 1, #Step interval of rank allocation.
+    'beta1': 0.85, #Hyperparameter of EMA.
+    'beta2': 0.85, #Hyperparameter of EMA.
+    'orth_reg_weight': 0.5, #The orthogonal regularization coefficient.
+    'total_step': None, #The total training steps.
+    'rank_pattern': None, #The saved rank pattern.
+}
+
+
+
+prompt_info_args = {
+    "with_prompt": False,
+    "prompt_type": "prefix_tuning", # one of prompt_tuning,p_tuning,prefix_tuning,adaption_prompt
+    "task_type": "seq_2_seq_lm", #  one of seq_cls,seq_2_seq_lm,causal_lm,token_cls
+    "prefix_projection": False, # Whether to project the prefix tokens"
+    "num_virtual_tokens": 32, # Number of virtual tokens
+    # "token_dim": 2048, # The hidden embedding dimension of the base transformer model.
+    # "num_transformer_submodules": 1, # The number of transformer submodules in the base transformer model.
+    # "num_attention_heads" : 24, # The number of attention heads in the base transformer model.
+    # "num_layers": 1, # The number of layers in the base transformer model.
+    # "encoder_hidden_size": 2048, # The hidden size of the encoder
+}
 
 
 train_info_args = {
@@ -61,6 +116,7 @@ train_info_args = {
     'scheduler_type': 'CAWR',
     # one of [linear,WarmupCosine,CAWR,CAL,Step,ReduceLROnPlateau, cosine,cosine_with_restarts,polynomial,constant,constant_with_warmup,inverse_sqrt,reduce_lr_on_plateau]
 
+
     # 'scheduler_type': 'linear',# one of [linear,WarmupCosine,CAWR,CAL,Step,ReduceLROnPlateau
     # 'scheduler': None,
 
@@ -89,6 +145,10 @@ train_info_args = {
     'max_seq_length': 512,
     'max_target_length': 100,  # 预测最大长度
 
+    ##############  lora模块
+    'lora': lora_info_args,
+    'adalora': adalora_info_args,
+    'prompt': prompt_info_args,
 }
 
 
@@ -98,3 +158,9 @@ train_info_args = {
 
 if global_args['load_in_8bit'] == global_args['load_in_4bit'] and global_args['load_in_8bit'] == True:
     raise Exception('load_in_8bit and load_in_4bit only set one at same time!')
+
+if lora_info_args['with_lora'] == adalora_info_args['with_lora'] and lora_info_args['with_lora'] == True:
+    raise Exception('lora and adalora can set one at same time !')
+
+if lora_info_args['with_lora'] == prompt_info_args['with_prompt'] and lora_info_args['with_lora'] == True:
+    raise Exception('lora and prompt can set one at same time !')

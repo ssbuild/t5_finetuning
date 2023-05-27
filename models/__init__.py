@@ -4,9 +4,10 @@ import os
 import re
 from collections import OrderedDict
 import torch
+from deep_training.nlp.models.prompt import PromptModel,PromptArguments,PromptLearningConfig
 from torch import nn
 from transformers import PreTrainedModel
-from models.models import *
+from models.llm_model import *
 
 
 
@@ -37,11 +38,13 @@ class SftWeightMinMax:
         assert os.path.exists(sft_weight_path)
         if self.lora_args is not None and self.lora_args.with_lora:
             # 恢复权重
-            self.backbone.load_weight(pretrained_model_name_or_path=sft_weight_path,is_trainable=is_trainable)
+            self.backbone: LoraModel
+            self.backbone.load_adapter(sft_weight_path, adapter_name="default", is_trainable=is_trainable)
 
         elif self.prompt_args is not None and self.prompt_args.with_prompt:
             # 恢复权重
-            self.backbone.load_weight(pretrained_model_name_or_path=sft_weight_path, is_trainable=is_trainable)
+            self.backbone: PromptModel
+            self.backbone.load_adapter(sft_weight_path, adapter_name="default", is_trainable=is_trainable)
         else:
             weight_dict = torch.load(sft_weight_path)
             weights_dict_new = OrderedDict()
@@ -89,10 +92,13 @@ class MyTransformer(MyTransformerLM,SftWeightMinMax, with_pl=True):
             model.print_trainable_parameters()
             self.set_model(model, copy_attr=False)
 
-
     def get_model_lr(self, model=None, lr=None):
+        # for n, p in self.named_parameters():
+        #     print(n, p.requires_grad)
         lr = lr if lr is not None else self.config.task_specific_params['learning_rate']
-        if self.prompt_args and self.prompt_args.with_prompt:
+        if self.lora_args is not None and self.lora_args.with_lora:
+            return [(self.backbone, lr)]
+        elif self.prompt_args and self.prompt_args.with_prompt:
             return [(self.backbone, lr)]
         return super(MyTransformer, self).get_model_lr(model, lr)
 
@@ -100,6 +106,6 @@ class MyTransformer(MyTransformerLM,SftWeightMinMax, with_pl=True):
         if self.lora_args is not None and self.lora_args.with_lora:
             return self.backbone.model.model
         elif self.prompt_args is not None and self.prompt_args.with_prompt:
-            #PromptModel 方法覆盖原来方法
+            # PromptModel 方法覆盖原来方法
             return self.backbone
         return self.backbone.model

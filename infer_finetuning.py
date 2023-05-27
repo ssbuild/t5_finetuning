@@ -7,9 +7,8 @@ import torch
 from deep_training.data_helper import ModelArguments, DataArguments, TrainingArguments
 from transformers import HfArgumentParser
 
-from config import get_deepspeed_config
 from models import MyTransformer,LoraArguments
-from data_utils import train_info_args, postprocess, NN_DataHelper
+from data_utils import train_info_args, postprocess, NN_DataHelper,get_deepspeed_config
 
 
 def generate_text(base_model,text,device = torch.device('cuda:0'),max_length=128):
@@ -62,7 +61,7 @@ if __name__ == '__main__':
     model = pl_model.get_llm_model()
     model.eval().cuda()
 
-    text= "帮我写一个请假条，我因为新冠不舒服，需要请假3天，请领导批准"
+    text= "写一个诗歌，关于冬天"
     output = generate_text(model,text)
     print('input',text)
     print('output',output)

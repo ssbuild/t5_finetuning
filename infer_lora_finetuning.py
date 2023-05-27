@@ -4,7 +4,7 @@
 import os
 
 import torch
-from deep_training.data_helper import ModelArguments, DataArguments, TrainingArguments
+from deep_training.data_helper import ModelArguments, DataArguments
 from transformers import HfArgumentParser
 from models import MyTransformer,LoraArguments
 from data_utils import train_info_args, postprocess, NN_DataHelper
@@ -52,7 +52,7 @@ if __name__ == '__main__':
         model.eval().cuda()
 
 
-        text= "帮我写一个请假条，我因为新冠不舒服，需要请假3天，请领导批准"
+        text= "写一个诗歌，关于冬天"
         output = generate_text(model,text)
         print('input',text)
         print('output',output)

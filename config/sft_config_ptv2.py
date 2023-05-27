@@ -27,6 +27,18 @@ if global_args['load_in_4bit'] != True:
     global_args['quantization_config'] = None
 
 
+prompt_info_args = {
+    "with_prompt": False,
+    "prompt_type": "prefix_tuning", # one of prompt_tuning,p_tuning,prefix_tuning,adaption_prompt
+    "task_type": "seq_2_seq_lm", #  one of seq_cls,seq_2_seq_lm,causal_lm,token_cls
+    "prefix_projection": False, # Whether to project the prefix tokens"
+    "num_virtual_tokens": 32, # Number of virtual tokens
+    # "token_dim": 2048, # The hidden embedding dimension of the base transformer model.
+    # "num_transformer_submodules": 1, # The number of transformer submodules in the base transformer model.
+    # "num_attention_heads" : 24, # The number of attention heads in the base transformer model.
+    # "num_layers": 1, # The number of layers in the base transformer model.
+    # "encoder_hidden_size": 2048, # The hidden size of the encoder
+}
 
 
 train_info_args = {
@@ -89,6 +101,8 @@ train_info_args = {
     'max_seq_length': 512,
     'max_target_length': 100,  # 预测最大长度
 
+    ##############  lora模块
+    'prompt': prompt_info_args,
 }
 
 

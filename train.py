@@ -2,17 +2,14 @@
 #reference: https://github.com/clue-ai/PromptCLUE/blob/main/Fine_tuning_PyTorch.ipynb
 import logging
 import torch
-import transformers
 from deep_training.data_helper import ModelArguments, DataArguments, TrainingArguments
 from deep_training.utils.trainer import SimpleModelCheckpoint
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.strategies import DeepSpeedStrategy
 from transformers import HfArgumentParser
-
-from config import get_deepspeed_config, global_args
-from data_utils import NN_DataHelper, train_info_args
-from models import MyTransformer, LoraArguments,LoraConfig
+from data_utils import NN_DataHelper, train_info_args,get_deepspeed_config, global_args
+from models import MyTransformer, LoraArguments,LoraConfig,PromptArguments
 
 deepspeed_config = get_deepspeed_config()
 
@@ -69,9 +66,22 @@ class MySimpleModelCheckpoint(SimpleModelCheckpoint):
 
 
 if __name__ == '__main__':
-    parser = HfArgumentParser((ModelArguments, TrainingArguments, DataArguments,LoraArguments))
-    model_args, training_args, data_args,lora_args = parser.parse_dict(train_info_args)
+    parser = HfArgumentParser((ModelArguments, TrainingArguments, DataArguments, LoraArguments, PromptArguments))
+    model_args, training_args, data_args, lora_args, prompt_args = parser.parse_dict(train_info_args)
     lora_args = lora_args.config
+    prompt_args = prompt_args.config
+
+    dataHelper = NN_DataHelper(model_args, training_args, data_args)
+    tokenizer, config, label2id, id2label = dataHelper.load_tokenizer_and_config()
+
+    # 缓存数据集
+    if data_args.do_train:
+        dataHelper.make_dataset_with_args(data_args.train_file, mixed_data=False, shuffle=True, mode='train',
+                                          num_process_worker=0)
+    if data_args.do_eval:
+        dataHelper.make_dataset_with_args(data_args.eval_file, mode='eval')
+    if data_args.do_test:
+        dataHelper.make_dataset_with_args(data_args.test_file, mode='test')
 
 
     strategy = 'ddp' if torch.cuda.device_count() > 1 else 'auto'
@@ -117,24 +127,20 @@ if __name__ == '__main__':
         # precision='16-mixed',#混合精度训练
     )
 
-    dataHelper = NN_DataHelper(model_args, training_args, data_args)
-    tokenizer, config, label2id, id2label = dataHelper.load_tokenizer_and_config()
+
 
     # 额外参数
     checkpoint_callback.tokenizer = tokenizer
     checkpoint_callback.data_args = data_args
 
-    # 缓存数据集
-    if data_args.do_train:
-        dataHelper.make_dataset_with_args(data_args.train_file,mixed_data=False,shuffle=True,mode='train',num_process_worker=0)
-    if data_args.do_eval:
-        dataHelper.make_dataset_with_args(data_args.eval_file, mode='eval')
-    if data_args.do_test:
-        dataHelper.make_dataset_with_args(data_args.test_file,mode='test')
-
-    pl_model = MyTransformer(config=config, model_args=model_args, training_args=training_args, lora_args=lora_args,
+    pl_model = MyTransformer(config=config, model_args=model_args, training_args=training_args, lora_args=lora_args,prompt_args=prompt_args,
+                             quantization_config=global_args["quantization_config"],
                              load_in_8bit=global_args["load_in_8bit"],
-                             device_map={"": trainer.local_rank} if trainer.world_size > 1 else "auto")
+                             device_map={"": trainer.local_rank} if trainer.world_size > 1 else "auto",
+                             torch_dtype=torch.float16, )
+
+    # 加载sft权重
+    # pl_model.load_sft_weight('./best_ckpt/best.pt',is_trainable=True)
 
     pl_model.float()
 
