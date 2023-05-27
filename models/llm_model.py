@@ -1,7 +1,7 @@
 # @Time    : 2023/4/2 23:14
 # @Author  : tk
 # @FileName: models
-from deep_training.nlp.models.lora.v2 import LoraArguments, LoraConfig, LoraModel
+
 from deep_training.nlp.models.transformer import TransformerForSeq2SeqLM
 from transformers import T5ForConditionalGeneration
 

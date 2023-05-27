@@ -102,7 +102,7 @@ train_info_args = {
 
     'scheduler_type': 'CAWR',
     # one of [linear,WarmupCosine,CAWR,CAL,Step,ReduceLROnPlateau, cosine,cosine_with_restarts,polynomial,constant,constant_with_warmup,inverse_sqrt,reduce_lr_on_plateau]
-
+    'scheduler':{'T_mult': 1, 'rewarm_epoch_num': 2, 'verbose': False},
 
     # 'scheduler_type': 'linear',# one of [linear,WarmupCosine,CAWR,CAL,Step,ReduceLROnPlateau
     # 'scheduler': None,
@@ -118,7 +118,7 @@ train_info_args = {
     # 'scheduler':{ 'decay_rate': 0.999,'decay_steps': 100,'verbose': True},
 
     # 'scheduler_type': 'CAWR',
-    # 'scheduler':{'T_mult': 1, 'rewarm_epoch_num': 2, 'verbose': True},
+    # 'scheduler':{'T_mult': 1, 'rewarm_epoch_num': 2, 'verbose': False},
 
     # 'scheduler_type': 'CAL',
     # 'scheduler': {'rewarm_epoch_num': 2,'verbose': True},

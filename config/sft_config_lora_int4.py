@@ -105,8 +105,13 @@ train_info_args = {
     'train_batch_size': 4,
     'eval_batch_size': 2,
     'test_batch_size': 2,
-    'optimizer': 'lion', # one of adamw,adam,lamb,lion
     'learning_rate': 5e-5, # lora 调大学习率 1e-3
+    'optimizer': 'lion',
+    # one of [lamb,adamw_hf,adamw,adamw_torch,adamw_torch_fused,adamw_torch_xla,adamw_apex_fused,adafactor,adamw_anyprecision,sgd,adagrad,adamw_bnb_8bit,adamw_8bit,lion_8bit,lion_32bit,paged_adamw_32bit,paged_adamw_8bit,paged_lion_32bit,paged_lion_8bit]
+
+    'scheduler_type': 'CAWR',
+    # one of [linear,WarmupCosine,CAWR,CAL,Step,ReduceLROnPlateau, cosine,cosine_with_restarts,polynomial,constant,constant_with_warmup,inverse_sqrt,reduce_lr_on_plateau]
+    'scheduler':{'T_mult': 1, 'rewarm_epoch_num': 2, 'verbose': False},
 
     # 'scheduler_type': 'linear',# one of [linear,WarmupCosine,CAWR,CAL,Step,ReduceLROnPlateau
     # 'scheduler': None,
@@ -122,7 +127,7 @@ train_info_args = {
     # 'scheduler':{ 'decay_rate': 0.999,'decay_steps': 100,'verbose': True},
 
     # 'scheduler_type': 'CAWR',
-    # 'scheduler':{'T_mult': 1, 'rewarm_epoch_num': 2, 'verbose': True},
+    # 'scheduler':{'T_mult': 1, 'rewarm_epoch_num': 2, 'verbose': False},
 
     # 'scheduler_type': 'CAL',
     # 'scheduler': {'rewarm_epoch_num': 2,'verbose': True},

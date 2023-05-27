@@ -4,7 +4,8 @@ import os
 import re
 from collections import OrderedDict
 import torch
-from deep_training.nlp.models.prompt import PromptModel,PromptArguments,PromptLearningConfig
+from deep_training.nlp.models.lora.v2 import LoraArguments, LoraConfig, LoraModel
+from deep_training.nlp.models.prompt import PromptModel, PromptArguments, PromptLearningConfig, get_prompt_model
 from torch import nn
 from transformers import PreTrainedModel
 from models.llm_model import *
@@ -82,13 +83,30 @@ class SftWeightMinMax:
 class MyTransformer(MyTransformerLM,SftWeightMinMax, with_pl=True):
     def __init__(self, *args, **kwargs):
         lora_args: LoraConfig = kwargs.pop('lora_args', None)
+        prompt_args: PromptLearningConfig = kwargs.pop('prompt_args', None)
         super(MyTransformer, self).__init__(*args, **kwargs)
         self.lora_args = lora_args
-        self.prompt_args = None
+        self.prompt_args = prompt_args
         if lora_args is not None and lora_args.with_lora:
             self.backbone.enable_input_require_grads()
-            model: LoraModel = LoraModel(self.backbone, lora_args)
+            model: LoraModel = LoraModel(self.backbone, lora_args, auto_prepare_kbit_training=False)
             print('==' * 30, 'lora info')
+            model.print_trainable_parameters()
+            self.set_model(model, copy_attr=False)
+            # for name, module in model.named_modules():
+            #     if isinstance(module, LoraLayer):
+            #         module = module.to(torch.bfloat16)
+            #     if 'norm' in name:
+            #         module = module.to(torch.float32)
+            #     if 'lm_head' in name or 'embed_tokens' in name:
+            #         if hasattr(module, 'weight'):
+            #             if module.weight.dtype == torch.float32:
+            #                 module = module.to(torch.bfloat16)
+
+        elif prompt_args is not None and prompt_args.with_prompt:
+            self.backbone.enable_input_require_grads()
+            model: PromptModel = get_prompt_model(self.backbone, prompt_args)
+            print('==' * 30, 'prompt info')
             model.print_trainable_parameters()
             self.set_model(model, copy_attr=False)
 
