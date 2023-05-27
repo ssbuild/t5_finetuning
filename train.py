@@ -123,7 +123,7 @@ if __name__ == '__main__':
         accumulate_grad_batches=training_args.gradient_accumulation_steps,
         num_sanity_val_steps=0,
         strategy=strategy,
-        precision='16'  # #可以自行尝试  "32": "32-true", "16": "16-mixed", "bf16": "bf16-mixed"
+        precision='32'  # #可以自行尝试  "32": "32-true", "16": "16-mixed", "bf16": "bf16-mixed"
         # precision='16-mixed',#混合精度训练
     )
 
