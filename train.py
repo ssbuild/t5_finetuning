@@ -71,8 +71,12 @@ if __name__ == '__main__':
     lora_args = lora_args.config
     prompt_args = prompt_args.config
 
+    config_kwargs = {"torch_dtype": torch.float16}
+    if global_args["num_layers"] > 0:
+        config_kwargs["num_layers"] = global_args["num_layers"]
+        config_kwargs["num_decoder_layers"] = global_args["num_layers"]
     dataHelper = NN_DataHelper(model_args, training_args, data_args)
-    tokenizer, config, label2id, id2label = dataHelper.load_tokenizer_and_config()
+    tokenizer, config, label2id, id2label = dataHelper.load_tokenizer_and_config(config_kwargs=config_kwargs)
     config.save_pretrained('best_ckpt')
 
     # 缓存数据集
@@ -125,7 +129,7 @@ if __name__ == '__main__':
         accumulate_grad_batches=training_args.gradient_accumulation_steps,
         num_sanity_val_steps=0,
         strategy=strategy,
-        precision='32'  # #可以自行尝试  "32": "32-true", "16": "16-mixed", "bf16": "bf16-mixed"
+        precision='16'  # #可以自行尝试  "32": "32-true", "16": "16-mixed", "bf16": "bf16-mixed"
         # precision='16-mixed',#混合精度训练
     )
 
@@ -136,7 +140,7 @@ if __name__ == '__main__':
     checkpoint_callback.data_args = data_args
 
     pl_model = MyTransformer(config=config, model_args=model_args, training_args=training_args, lora_args=lora_args,prompt_args=prompt_args,
-                             quantization_config=global_args["quantization_config"],
+                             quantization_config=global_args.get('quantization_config',None),
                              load_in_8bit=global_args["load_in_8bit"],
                              device_map={"": trainer.local_rank} if trainer.world_size > 1 else "auto",
                              torch_dtype=torch.float16, )

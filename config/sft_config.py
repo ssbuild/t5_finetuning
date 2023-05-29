@@ -20,7 +20,8 @@ global_args = {
     #load_in_4bit 量化配置
     "quantization_config": None,
     "config_merge": {
-    }
+    },
+    "num_layers": -1,  # 是否使用骨干网络的全部层数 ， -1 表示全层, 否则只用只用N层
 }
 
 if global_args['load_in_4bit'] != True:
