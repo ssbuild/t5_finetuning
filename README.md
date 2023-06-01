@@ -2,7 +2,7 @@
    - [deep_training](https://github.com/ssbuild/deep_training)
 
 ```text
-    06-01 支持lora deepspeed 训练，0.1.10 和 0.1.10合并
+    06-01 支持lora deepspeed 训练，0.1.9 和 0.1.10合并
     05-27 add qlora transformers>=4.30
     05-24 lora v2
 ```
