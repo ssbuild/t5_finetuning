@@ -2,6 +2,7 @@
    - [deep_training](https://github.com/ssbuild/deep_training)
 
 ```text
+    06-01 支持lora deepspeed 训练，0.1.10 和 0.1.10合并
     05-27 add qlora transformers>=4.30
     05-24 lora v2
 ```
@@ -9,6 +10,12 @@
 ## install
   - pip install -i https://pypi.org/simple -U -r requirements.txt
 
+```text
+dev 版本可通过下列方式安装 
+pip install -i --pre https://pypi.org/simple deep_training==0.1.10 cpm_kernels bitsandbytes>=0.39
+pip install -q -U git+https://github.com/huggingface/transformers.git
+pip install -q -U git+https://github.com/huggingface/accelerate.git
+```
 
 
 
@@ -47,12 +54,13 @@
 
 
 ## 切换训练模式配置
-    修改 config/__init__.py       “from config.sft_config import *”  切换配置文件
-    config/sft_config.py            finetuning
-    config/sft_config_lora.py       lora finetuning
-    config/sft_config_lora_int4.py  lora int4 finetuning
-    config/sft_config_lora_int8.py  lora int8 finetuning
-    config/sft_config_ptv2.py       lora p-tuning-v2 finetuning
+    修改 config/main.py
+    # 模块配置， 默认启用lora
+    enable_deepspeed = False
+    enable_ptv2 = True
+    enable_lora = True
+    enable_int8 = False # qlora int8
+    enable_int4 = False # qlora int4
 
 
 

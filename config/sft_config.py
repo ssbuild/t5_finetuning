@@ -3,14 +3,9 @@
 import json
 import os
 
-# **************切换 配置文件 修改 config.__init__.py
+from config.constant_map import train_info_models
 
-# Quantization parameters are controlled from the BitsandbytesConfig (see HF documenation) as follows:
-#
-# Loading in 4 bits is activated through load_in_4bit
-# The datatype used for the linear layer computations with bnb_4bit_compute_dtype
-# Nested quantization is activated through bnb_4bit_use_double_quant
-# The datatype used for qunatization is specified with bnb_4bit_quant_type. Note that there are two supported quantization datatypes fp4 (four bit float) and nf4 (normal four bit float). The latter is theoretically optimal for normally distributed weights and we recommend using nf4.
+train_model_config = train_info_models['ChatYuan-large-v2']
 
 #如果显卡支持int8 可以开启
 global_args = {
@@ -24,28 +19,14 @@ global_args = {
     "num_layers": -1,  # 是否使用骨干网络的全部层数 ， -1 表示全层, 否则只用只用N层
 }
 
-if global_args['load_in_4bit'] != True:
-    global_args['quantization_config'] = None
-
-
 
 
 train_info_args = {
     'devices': 1,
     'data_backend': 'record',
-    'model_type': 't5',
-    # 预训练模型路径 , 从0训练，则置空
-    'model_name_or_path': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v2',
-    'tokenizer_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v2',
-    'config_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v2/config.json',
+    # 预训练模型路径
+    **train_model_config,
 
-    # 'model_name_or_path': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1',
-    # 'tokenizer_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1',
-    # 'config_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1/config.json',
-
-    # 'model_name_or_path': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5',
-    # 'tokenizer_name': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5',
-    # 'config_name': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5/config.json',
     'convert_onnx': False, # 转换onnx模型
     'do_train': True,
     'convert_file': True, # train_file是否需要制作record , 如果已经制作好，可以不需要原语料文件，train_file 为制作好的record 文件list
@@ -94,10 +75,3 @@ train_info_args = {
 
 }
 
-
-
-#配置检查
-
-
-if global_args['load_in_8bit'] == global_args['load_in_4bit'] and global_args['load_in_8bit'] == True:
-    raise Exception('load_in_8bit and load_in_4bit only set one at same time!')

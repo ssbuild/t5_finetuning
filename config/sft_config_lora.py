@@ -3,39 +3,36 @@
 import json
 import os
 
-# **************切换 配置文件 修改 config.__init__.py
+import torch
+from transformers import BitsAndBytesConfig
+from config.constant_map import train_info_models, train_target_modules_maps
 
-# Quantization parameters are controlled from the BitsandbytesConfig (see HF documenation) as follows:
-#
-# Loading in 4 bits is activated through load_in_4bit
-# The datatype used for the linear layer computations with bnb_4bit_compute_dtype
-# Nested quantization is activated through bnb_4bit_use_double_quant
-# The datatype used for qunatization is specified with bnb_4bit_quant_type. Note that there are two supported quantization datatypes fp4 (four bit float) and nf4 (normal four bit float). The latter is theoretically optimal for normally distributed weights and we recommend using nf4.
+train_model_config = train_info_models['ChatYuan-large-v2']
 
-#如果显卡支持int8 可以开启
 global_args = {
     "load_in_8bit": False, # lora 如果显卡支持int8 可以开启
     "load_in_4bit": False,
 
     #load_in_4bit 量化配置
-    "quantization_config": None,
+    "quantization_config": BitsAndBytesConfig(
+        load_in_4bit = True,
+        llm_int8_threshold=6.0,
+        llm_int8_has_fp16_weight=False,
+        bnb_4bit_compute_dtype=torch.float16,
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_type="nf4",
+    ),
     "config_merge": {
     },
     "num_layers": -1,  # 是否使用骨干网络的全部层数 ， -1 表示全层, 否则只用只用N层
 }
-
-if global_args['load_in_4bit'] != True:
-    global_args['quantization_config'] = None
 
 # 默认禁用lora 相关模块 , lora 和 adalora 只能同时启用一个
 lora_info_args = {
     'with_lora': True,  # 是否启用lora模块
     'lora_type': 'lora',
     'r': 8,
-    'target_modules': ['q', 'v'],
-    #'target_modules': ['query_key_value'],  # bloom,gpt_neox
-    # 'target_modules': ["q_proj", "v_proj"], #llama,opt,gptj,gpt_neo
-    # 'target_modules': ['c_attn'], #gpt2
+    'target_modules': train_target_modules_maps[train_model_config['model_type']],
     'lora_alpha': 32,
     'lora_dropout': 0.1,
     'fan_in_fan_out': False,
@@ -47,10 +44,7 @@ adalora_info_args = {
     'with_lora': False,  # 是否启用adalora模块
     'lora_type': 'adalora',
     'r': 8,
-    'target_modules': ['q', 'v'],
-    #'target_modules': ['query_key_value'],  # bloom,gpt_neox
-    # 'target_modules': ["q_proj", "v_proj"], #llama,opt,gptj,gpt_neo
-    # 'target_modules': ['c_attn'], #gpt2
+    'target_modules': train_target_modules_maps[train_model_config['model_type']],
     'lora_alpha': 32,
     'lora_dropout': 0.1,
     'fan_in_fan_out': False,
@@ -76,18 +70,9 @@ train_info_args = {
     'devices': 1,
     'data_backend': 'record',
     'model_type': 't5',
-    # 预训练模型路径 , 从0训练，则置空
-    'model_name_or_path': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v2',
-    'tokenizer_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v2',
-    'config_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v2/config.json',
+    # 预训练模型路径
+    **train_model_config,
 
-    # 'model_name_or_path': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1',
-    # 'tokenizer_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1',
-    # 'config_name': '/data/nlp/pre_models/torch/t5/ChatYuan-large-v1/config.json',
-
-    # 'model_name_or_path': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5',
-    # 'tokenizer_name': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5',
-    # 'config_name': '/data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5/config.json',
     'convert_onnx': False, # 转换onnx模型
     'do_train': True,
     'convert_file': True, # train_file是否需要制作record , 如果已经制作好，可以不需要原语料文件，train_file 为制作好的record 文件list
@@ -139,13 +124,3 @@ train_info_args = {
 
 }
 
-
-
-#配置检查
-
-
-if global_args['load_in_8bit'] == global_args['load_in_4bit'] and global_args['load_in_8bit'] == True:
-    raise Exception('load_in_8bit and load_in_4bit only set one at same time!')
-
-if lora_info_args['with_lora'] == adalora_info_args['with_lora'] and lora_info_args['with_lora'] == True:
-    raise Exception('lora and adalora can set one at same time !')

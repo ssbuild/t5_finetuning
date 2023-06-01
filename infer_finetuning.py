@@ -49,10 +49,10 @@ if __name__ == '__main__':
         assert os.path.exists(train_weight)
 
     else:
-        # 建议直接使用转换脚本命令 支持 deepspeed stage 0,1,2,3， 生成 ./best_ckpt/last.ckpt/best.pt 权重文件
-        # cd best_ckpt/last.ckpt
+        # 建议直接使用转换脚本命令 支持 deepspeed stage 0,1,2,3， 生成 ./best_ckpt/last/best.pt 权重文件
+        # cd best_ckpt/last
         # python zero_to_fp32.py . best.pt
-        train_weight = './best_ckpt/last.ckpt/best.pt'
+        train_weight = './best_ckpt/last/best.pt'
 
 
     #加载权重

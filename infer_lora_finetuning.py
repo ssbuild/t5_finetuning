@@ -34,7 +34,7 @@ if __name__ == '__main__':
     dataHelper = NN_DataHelper(model_args, None, data_args)
     tokenizer, config, _,_= dataHelper.load_tokenizer_and_config()
 
-    ckpt_dir = './best_ckpt'
+    ckpt_dir = './best_ckpt/last'
     lora_args = LoraArguments.from_pretrained(ckpt_dir)
     assert lora_args.inference_mode == True
     pl_model = MyTransformer(config=config,model_args=model_args,lora_args=lora_args)

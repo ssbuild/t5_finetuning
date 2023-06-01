@@ -36,7 +36,7 @@ if __name__ == '__main__':
     dataHelper = NN_DataHelper(model_args, training_args, data_args)
     tokenizer, _, _, _ = dataHelper.load_tokenizer_and_config(config_kwargs={"torch_dtype": torch.float16})
 
-    ckpt_dir = './best_ckpt'
+    ckpt_dir = './best_ckpt/last'
     config = AutoConfig.from_pretrained(ckpt_dir)
     prompt_args = PromptArguments.from_pretrained(ckpt_dir)
 

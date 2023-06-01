@@ -1,67 +1,15 @@
 # -*- coding: utf-8 -*-
 #reference: https://github.com/clue-ai/PromptCLUE/blob/main/Fine_tuning_PyTorch.ipynb
-import logging
+
 import torch
 from deep_training.data_helper import ModelArguments, DataArguments, TrainingArguments
-from deep_training.utils.trainer import SimpleModelCheckpoint
+from deep_training.trainer.pl.modelcheckpoint import ModelCheckpointEx
 from lightning import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.strategies import DeepSpeedStrategy
 from transformers import HfArgumentParser
 from data_utils import NN_DataHelper, train_info_args,get_deepspeed_config, global_args
 from models import MyTransformer, LoraArguments,LoraConfig,PromptArguments
 
-deepspeed_config = get_deepspeed_config()
-
-class MySimpleModelCheckpoint(SimpleModelCheckpoint):
-    def __init__(self, *args, **kwargs):
-        super(MySimpleModelCheckpoint, self).__init__(*args, **kwargs)
-        lora_args:LoraConfig= self.external_kwargs['lora_args']
-        prompt_args = self.external_kwargs.get('prompt_args',None)
-        if lora_args or prompt_args:
-            self.weight_file = './best_ckpt'
-            self.last_weight_file = './last_ckpt'
-
-    def load_model_from_ckpt(self):
-        model_args = self.external_kwargs['model_args']
-        training_args = self.external_kwargs['training_args']
-        lora_args = LoraArguments.from_pretrained(self.last_weight_file)
-        pl_module = MyTransformer(lora_args=lora_args,
-                              config=config,
-                              model_args=model_args,
-                              training_args=training_args)
-
-
-        pl_module.backbone.from_pretrained(pl_module.backbone.model,self.last_weight_file)
-        return pl_module
-
-
-    def on_save_model(
-            self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"
-    ) -> None:
-
-        lora_args : LoraArguments =  self.external_kwargs['lora_args']
-        prompt_args = self.external_kwargs.get('prompt_args', None)
-        # 保存权重
-        if lora_args is None and prompt_args is None:
-            super(MySimpleModelCheckpoint, self).on_save_model(trainer, pl_module)
-        else:
-            # 保存最新权重
-            logging.info('step {} saving model'.format(trainer.global_step))
-            pl_module.backbone.save_pretrained(self.weight_file)
-            # monitor_candidates = self._monitor_candidates(trainer)
-            # monitor_candidates.update(self.on_get_metric(trainer, pl_module))
-            # val = monitor_candidates.get(self.monitor, None)
-            #
-            # #保存loss最小权重
-            # if self.update_best(val):
-            #     logging.info('epoch {} ,step {} , save best {}, {}\n'.format(monitor_candidates['epoch'],
-            #                                                                  monitor_candidates['step'],
-            #                                                                  self.best[self.monitor],
-            #                                                                  self.weight_file))
-            #     pl_module.backbone.save_pretrained(self.weight_file)
-            # #保存最新权重
-            # pl_module.backbone.save_pretrained(self.last_weight_file)
 
 
 
@@ -71,13 +19,15 @@ if __name__ == '__main__':
     lora_args = lora_args.config
     prompt_args = prompt_args.config
 
+    output_weight_dir = './best_ckpt'
+
     config_kwargs = {"torch_dtype": torch.float16}
     if global_args["num_layers"] > 0:
         config_kwargs["num_layers"] = global_args["num_layers"]
         config_kwargs["num_decoder_layers"] = global_args["num_layers"]
     dataHelper = NN_DataHelper(model_args, training_args, data_args)
     tokenizer, config, label2id, id2label = dataHelper.load_tokenizer_and_config(config_kwargs=config_kwargs)
-    config.save_pretrained('best_ckpt')
+    config.save_pretrained(output_weight_dir)
 
     # 缓存数据集
     if data_args.do_train:
@@ -88,35 +38,22 @@ if __name__ == '__main__':
     if data_args.do_test:
         dataHelper.make_dataset_with_args(data_args.test_file, mode='test')
 
-
+    deepspeed_config = get_deepspeed_config()
     strategy = 'ddp' if torch.cuda.device_count() > 1 else 'auto'
     if deepspeed_config is not None and len(deepspeed_config):
         strategy = DeepSpeedStrategy(config=deepspeed_config, )
 
-    if lora_args or prompt_args:
-        assert deepspeed_config is None, ValueError('lora mode does not support deepspeed')
-        checkpoint_callback = MySimpleModelCheckpoint(
-            # monitor="loss",
-            save_weights_only=True,
-            every_n_epochs=1,
-            every_n_train_steps=2000 // training_args.gradient_accumulation_steps,
-            # 模型参数
-            model_args=model_args,
-            training_args=training_args,
-            lora_args=lora_args,
-            prompt_args=prompt_args
-        )
-    else:
-        checkpoint_callback = ModelCheckpoint(
-            # monitor='loss',
-            './best_ckpt',
-            save_weights_only=True,
-            save_last=True,
-            save_top_k=1,
-            # every_n_train_steps=1000,
-            every_n_epochs=1)
-
-
+    checkpoint_callback = ModelCheckpointEx(
+        # monitor='loss',
+        dirpath=output_weight_dir,
+        save_weights_only=True,
+        save_last=True,
+        save_top_k=1,
+        # every_n_train_steps=2000 // training_args.gradient_accumulation_steps,
+        every_n_epochs=1,
+        lora_args=lora_args,
+        prompt_args=prompt_args,
+    )
     trainer = Trainer(
         callbacks=[checkpoint_callback],
         max_epochs=training_args.max_epochs,
@@ -133,12 +70,6 @@ if __name__ == '__main__':
         # precision='16-mixed',#混合精度训练
     )
 
-
-
-    # 额外参数
-    checkpoint_callback.tokenizer = tokenizer
-    checkpoint_callback.data_args = data_args
-
     pl_model = MyTransformer(config=config, model_args=model_args, training_args=training_args, lora_args=lora_args,prompt_args=prompt_args,
                              quantization_config=global_args.get('quantization_config',None),
                              load_in_8bit=global_args["load_in_8bit"],
@@ -149,7 +80,6 @@ if __name__ == '__main__':
     # pl_model.load_sft_weight('./best_ckpt/best.pt',is_trainable=True)
 
     pl_model.float()
-
 
     def dataset_loader_filter_fn(dataset):
         print('*' * 30, 'total', len(dataset))

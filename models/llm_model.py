@@ -1,10 +1,9 @@
 # @Time    : 2023/4/2 23:14
 # @Author  : tk
 # @FileName: models
-from deep_training.nlp.models.prompt import get_prompt_model,PromptArguments
 from deep_training.nlp.models.transformer import TransformerForSeq2SeqLM
+from deep_training.trainer.pl.modelweighter import *
 from transformers import T5ForConditionalGeneration
-from models.model_weight import *
 
 
 class TransformerForLM(TransformerForSeq2SeqLM):
