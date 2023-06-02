@@ -53,14 +53,6 @@ pip install -q -U git+https://github.com/huggingface/accelerate.git
     }
 
 
-## 切换训练模式配置
-    修改 config/main.py
-    # 模块配置， 默认启用lora
-    enable_deepspeed = False
-    enable_ptv2 = True
-    enable_lora = True
-    enable_int8 = False # qlora int8
-    enable_int4 = False # qlora int4
 
 
 
@@ -83,28 +75,8 @@ pip install -q -U git+https://github.com/huggingface/accelerate.git
     python train.py
 ```
    
-
-### 单机多卡
-```text
-可见的前两块卡
-train_info_args = {
-    'devices': 2,
-}
-
-# 第一块 和 第三块卡
-train_info_args = {
-    'devices': [0,2],
-}
-```
-
-### 多机多卡训练
-```text
-例子 3个机器 每个机器 4个卡
-修改train.py Trainer num_nodes = 3
-MASTER_ADDR=10.0.0.1 MASTER_PORT=6667 WORLD_SIZE=12 NODE_RANK=0 python train.py 
-MASTER_ADDR=10.0.0.1 MASTER_PORT=6667 WORLD_SIZE=12 NODE_RANK=1 python train.py 
-MASTER_ADDR=10.0.0.1 MASTER_PORT=6667 WORLD_SIZE=12 NODE_RANK=2 python train.py 
-```
+## 训练参数
+[训练参数](args.MD)
 
 ## 友情链接
 
