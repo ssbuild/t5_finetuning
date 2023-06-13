@@ -27,7 +27,7 @@ if __name__ == '__main__':
         config_kwargs["num_decoder_layers"] = global_args["num_layers"]
     dataHelper = NN_DataHelper(model_args, training_args, data_args)
     tokenizer, config, label2id, id2label = dataHelper.load_tokenizer_and_config(config_kwargs=config_kwargs)
-    config.save_pretrained(output_weight_dir)
+
 
     # 缓存数据集
     if data_args.do_train:
@@ -74,7 +74,11 @@ if __name__ == '__main__':
                              quantization_config=global_args.get('quantization_config',None),
                              load_in_8bit=global_args["load_in_8bit"],
                              device_map={"": trainer.local_rank} if trainer.world_size > 1 else "auto",
-                             torch_dtype=torch.float16, )
+                             torch_dtype=torch.float16,
+                             new_num_tokens=len(tokenizer), # 如果扩充词
+                             )
+
+    config.save_pretrained(output_weight_dir)
 
     # 加载sft权重
     # pl_model.load_sft_weight('./best_ckpt/best.pt',is_trainable=True)

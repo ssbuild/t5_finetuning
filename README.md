@@ -2,6 +2,7 @@
    - [deep_training](https://github.com/ssbuild/deep_training)
 
 ```text
+	06-13 support resize_token_embeddings
     06-01 支持lora deepspeed 训练，0.1.9 和 0.1.10合并
     05-27 add qlora transformers>=4.30
     05-24 lora v2
@@ -9,15 +10,6 @@
 
 ## install
   - pip install -i https://pypi.org/simple -U -r requirements.txt
-
-```text
-dev 版本可通过下列方式安装 
-pip 安装rc 版本
-pip install -U -i https://pypi.org/simple deep_training==0.1.10
-pip install -U bitsandbytes>=0.39
-pip install -q -U git+https://github.com/huggingface/transformers.git
-```
-
 
 
 ## weight
