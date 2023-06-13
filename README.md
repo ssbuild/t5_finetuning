@@ -5,11 +5,12 @@
 	06-13 support resize_token_embeddings
     06-01 支持lora deepspeed 训练，0.1.9 和 0.1.10合并
     05-27 add qlora transformers>=4.30
-    05-24 lora v2
+    05-24 升级 lora
 ```
 
 ## install
-  - pip install -i https://pypi.org/simple -U -r requirements.txt
+  - pip install -U -r requirements.txt
+  - 如果无法安装， 可以切换官方源 pip install -i https://pypi.org/simple -U -r requirements.txt
 
 
 ## weight
