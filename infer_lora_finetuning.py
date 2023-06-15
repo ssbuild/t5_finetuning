@@ -37,7 +37,15 @@ if __name__ == '__main__':
     ckpt_dir = './best_ckpt/last'
     lora_args = LoraArguments.from_pretrained(ckpt_dir)
     assert lora_args.inference_mode == True
-    pl_model = MyTransformer(config=config,model_args=model_args,lora_args=lora_args)
+
+    new_num_tokens = config.vocab_size
+    if config.task_specific_params is not None and config.task_specific_params.get('vocab_size', None) is not None:
+        config.vocab_size = config.task_specific_params['vocab_size']
+
+    pl_model = MyTransformer(config=config,model_args=model_args,lora_args=lora_args,
+                             torch_dtype=config.torch_dtype,
+                             new_num_tokens=new_num_tokens,
+                             )
 
 
     # 加载lora权重
@@ -49,7 +57,7 @@ if __name__ == '__main__':
         pl_model.save_sft_weight(os.path.join(ckpt_dir, 'pytorch_model_merge.bin'), merge_lora_weight=True)
     else:
         model = pl_model.get_llm_model()
-        model.eval().cuda()
+        model.eval().half().cuda()
 
 
         text= "写一个诗歌，关于冬天"

@@ -9,7 +9,7 @@ from transformers import AutoTokenizer, T5Tokenizer, T5ForConditionalGeneration
 
 
 tokenizer = T5Tokenizer.from_pretrained("./ChatYuan-large-v1")
-model = T5ForConditionalGeneration.from_pretrained("./ChatYuan-large-v1")
+model = T5ForConditionalGeneration.from_pretrained("./ChatYuan-large-v1",torch_dtype=torch.float16,)
 # 修改colab笔记本设置为gpu，推理更快
 device = torch.device('cuda')
 model.to(device)

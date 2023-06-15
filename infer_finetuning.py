@@ -39,7 +39,7 @@ if __name__ == '__main__':
     dataHelper = NN_DataHelper(model_args, None, data_args)
     tokenizer, config, _,_= dataHelper.load_tokenizer_and_config()
 
-    pl_model = MyTransformer(config=config, model_args=model_args)
+    pl_model = MyTransformer(config=config, model_args=model_args,torch_dtype=torch.float16,)
 
     ###################### 注意 选最新权重
     # 选择最新的权重 ， 根据时间排序 选最新的
@@ -59,7 +59,7 @@ if __name__ == '__main__':
     pl_model.load_sft_weight(train_weight)
 
     model = pl_model.get_llm_model()
-    model.eval().cuda()
+    model.eval().half().cuda()
 
     text= "写一个诗歌，关于冬天"
     output = generate_text(model,text)
