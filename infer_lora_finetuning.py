@@ -6,7 +6,7 @@ import os
 import torch
 from deep_training.data_helper import ModelArguments, DataArguments
 from transformers import HfArgumentParser
-from models import MyTransformer,LoraArguments
+from aigc_zoo.model_zoo.t5.llm_model import MyTransformer,LoraArguments
 from data_utils import train_info_args, postprocess, NN_DataHelper
 
 

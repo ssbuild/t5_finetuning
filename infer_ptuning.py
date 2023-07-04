@@ -8,7 +8,7 @@ from deep_training.data_helper import ModelArguments, TrainingArguments, DataArg
 from transformers import HfArgumentParser,AutoConfig
 
 from data_utils import train_info_args, NN_DataHelper, postprocess
-from models import MyTransformer,LoraArguments,PromptArguments
+from aigc_zoo.model_zoo.t5.llm_model import MyTransformer,LoraArguments,PromptArguments
 
 def generate_text(base_model,text,device = torch.device('cuda:0'),max_length=128):
     input_text = "用户：" + text + "\n小元："
