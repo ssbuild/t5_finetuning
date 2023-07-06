@@ -258,13 +258,13 @@ class NN_DataHelper(DataHelper):
 
         #schema for arrow parquet
         schema = {
-            "input_ids": "int32",
-            "attention_mask": "int32",
-            "seqlen": "int32",
-            "decoder_input_ids": "int32",
-            "decoder_attention_mask": "int32",
-            "decoder_seqlen": "int32",
-            "labels": "int32",
+            "input_ids": "int32_list",
+            "attention_mask": "int32_list",
+            "seqlen": "int32_list",
+            "decoder_input_ids": "int32_list",
+            "decoder_attention_mask": "int32_list",
+            "decoder_seqlen": "int32_list",
+            "labels": "int32_list",
         }
         # 缓存数据集
         if data_args.do_train:
