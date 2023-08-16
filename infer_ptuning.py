@@ -28,12 +28,12 @@ def generate_text(base_model,text,device = torch.device('cuda:0'),max_length=128
 
 if __name__ == '__main__':
     train_info_args['seed'] = None
-    parser = HfArgumentParser((ModelArguments, TrainingArguments, DataArguments, LoraArguments,PromptArguments))
-    model_args, training_args, data_args, _,_ = parser.parse_dict(train_info_args)
+    parser = HfArgumentParser((ModelArguments,))
+    (model_args,) = parser.parse_dict(train_info_args, allow_extra_keys=True)
 
 
 
-    dataHelper = NN_DataHelper(model_args, training_args, data_args)
+    dataHelper = NN_DataHelper(model_args)
     tokenizer, _, _, _ = dataHelper.load_tokenizer_and_config(config_kwargs={"torch_dtype": torch.float16})
 
     ckpt_dir = './best_ckpt/last'
@@ -46,8 +46,7 @@ if __name__ == '__main__':
     if config.task_specific_params is not None and config.task_specific_params.get('vocab_size', None) is not None:
         config.vocab_size = config.task_specific_params['vocab_size']
 
-    pl_model = MyTransformer(config=config, model_args=model_args, training_args=training_args,
-                             prompt_args=prompt_args,
+    pl_model = MyTransformer(config=config, model_args=model_args, prompt_args=prompt_args,
                              torch_dtype=config.torch_dtype,
                              new_num_tokens=new_num_tokens,
                              )
