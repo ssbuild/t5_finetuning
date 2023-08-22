@@ -2,14 +2,11 @@
 # @Time    : 2023/5/24 15:53
 import json
 import os
-from config.constant_map import train_info_models
+from config.constant_map import train_model_config
 
-train_model_config = train_info_models['ChatYuan-large-v2']
 
 
 global_args = {
-    "load_in_8bit": False, # lora 如果显卡支持int8 可以开启
-    "load_in_4bit": False,
 
     #load_in_4bit 量化配置
     "quantization_config": None,
