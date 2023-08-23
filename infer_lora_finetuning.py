@@ -6,7 +6,7 @@ import os
 import torch
 from deep_training.data_helper import ModelArguments, DataArguments
 from transformers import HfArgumentParser
-from aigc_zoo.model_zoo.t5.llm_model import MyTransformer,EffiArguments
+from aigc_zoo.model_zoo.t5.llm_model import MyTransformer,PetlArguments
 from data_utils import train_info_args, postprocess, NN_DataHelper
 
 
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     tokenizer, config, _,_= dataHelper.load_tokenizer_and_config()
 
     ckpt_dir = './best_ckpt/last'
-    lora_args = EffiArguments.from_pretrained(ckpt_dir)
+    lora_args = PetlArguments.from_pretrained(ckpt_dir)
     assert lora_args.inference_mode == True
 
     new_num_tokens = config.vocab_size

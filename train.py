@@ -8,13 +8,13 @@ from lightning import Trainer
 from lightning.pytorch.strategies import DeepSpeedStrategy
 from transformers import HfArgumentParser
 from data_utils import NN_DataHelper, train_info_args,get_deepspeed_config, global_args
-from aigc_zoo.model_zoo.t5.llm_model import MyTransformer, EffiArguments,LoraConfig,PromptArguments
+from aigc_zoo.model_zoo.t5.llm_model import MyTransformer, PetlArguments,LoraConfig,PromptArguments
 
 
 
 
 if __name__ == '__main__':
-    parser = HfArgumentParser((ModelArguments, TrainingArguments, DataArguments, EffiArguments, PromptArguments))
+    parser = HfArgumentParser((ModelArguments, TrainingArguments, DataArguments, PetlArguments, PromptArguments))
     model_args, training_args, data_args, lora_args, prompt_args = parser.parse_dict(train_info_args)
     lora_args = lora_args.config
     prompt_args = prompt_args.config
