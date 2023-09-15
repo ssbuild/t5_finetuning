@@ -15,11 +15,20 @@ from fastdatasets.record import load_dataset as Loader, RECORD, WriterObject, gf
 from tqdm import tqdm
 from transformers import T5Tokenizer, HfArgumentParser, T5Config
 from config import *
+from data_processer import DataStrategy, TokenTunction, TokenSlidding
 
 data_conf = {
-    # 滑动窗口 ， 数据多则相应增大，否则减小 ,stride <=0 则禁用滑动窗口
-    #'stride': 50,
-    'stride': 0,
+    'strategy': DataStrategy.tunction,  # 数据策略选项
+    DataStrategy.tunction: {
+        'ensure_answer_min_length': 1,
+        'sup': True, # 是否监督模式
+    },
+
+    DataStrategy.slidding: {
+        'stride': int(train_info_args['max_seq_length'] / 3 * 2),
+        'sup': True, # 是否监督模式
+    }
+
 }
 
 def preprocess(text):
@@ -34,83 +43,16 @@ class NN_DataHelper(DataHelper):
     def __init__(self, *args,**kwargs):
         super(NN_DataHelper, self).__init__(*args,**kwargs)
 
-        #非滑动窗口模式
-        if data_conf['stride'] <= 0:
+        strategy = data_conf['strategy']
+        if strategy == DataStrategy.tunction:
             self.collate_fn = self.collate_fn_none_stride
-            self.get_feature = self.get_feature_none_stride
         else:
             #滑动窗口模式
             self.collate_fn = self.collate_fn_stride
-            self.get_feature = self.get_feature_with_stride
 
 
     def on_data_ready(self):
         self.index = -1
-
-
-    def get_feature_with_stride(self,examples,stride,tokenizer,max_seq_length):
-        input_ids = []
-        for idx, (question,answer) in enumerate(examples):
-            text = question + answer
-            ids = tokenizer.encode(text=text)
-            if len(ids) <= 3:
-                continue
-            input_ids += ids
-
-        pos = 0
-        ds = []
-        while pos < len(input_ids):
-            input_ids_ = input_ids[pos: pos + max_seq_length - 2] 
-            pos += stride
-            if len(input_ids_) <= 5:
-                continue
-            seqlen = np.asarray(len(input_ids_), dtype=np.int32)
-            pad_len = max_seq_length - seqlen
-            input_ids_ = np.asarray(input_ids_, dtype=np.int32)
-            if pad_len:
-                pad_val = tokenizer.pad_token_id
-                input_ids_ = np.pad(input_ids_, (0, pad_len), 'constant', constant_values=(pad_val, pad_val))
-            d = {
-                'input_ids': input_ids_,
-                'seqlen': seqlen
-            }
-            ds.append(d)
-        if self.index < 3:
-            print(ds[0])
-        return ds
-
-    def get_feature_none_stride(self, examples, stride, tokenizer, max_seq_length):
-        config: T5Config = self.config
-        tokenizer : T5Tokenizer
-        ds = []
-        for idx, (question, answer) in enumerate(examples):
-            o1 = tokenizer.encode_plus(text=question, truncation=True,padding='max_length',max_length=max_seq_length,
-                                      return_token_type_ids=False)
-            o2 = tokenizer.encode_plus(text=answer, truncation=True,padding='max_length',max_length=max_seq_length-1,
-                                       return_token_type_ids=False)
-
-            o2['input_ids'] = [config.decoder_start_token_id] + o2['input_ids']
-            o2['attention_mask'] = [1] + o2['attention_mask']
-            
-            seqlen = np.sum(o1['attention_mask'])
-            decoder_seqlen = np.sum(o2['attention_mask']).tolist()
-            labels = copy.deepcopy(o2['input_ids'][1:])
-            labels = labels + [-100]
-            labels = np.asarray(labels,dtype=np.int64)
-            labels[decoder_seqlen-1:] = -100
-
-            d = {
-                'input_ids': np.asarray(o1['input_ids'],dtype=np.int32),
-                'attention_mask': np.asarray(o1['attention_mask'],dtype=np.int32),
-                'seqlen': np.asarray(seqlen,dtype=np.int32),
-                'decoder_input_ids': np.asarray(o2['input_ids'],dtype=np.int32),
-                'decoder_attention_mask': np.asarray(o2['attention_mask'],dtype=np.int32),
-                'decoder_seqlen': np.asarray(decoder_seqlen, dtype=np.int32),
-                'labels': np.asarray(labels,dtype=np.int32)
-            }
-            ds.append(d)
-
-        return ds
 
     # 切分词
     def on_data_process(self, data: typing.Any, mode: str):
@@ -118,14 +60,28 @@ class NN_DataHelper(DataHelper):
 
         tokenizer: T5Tokenizer
         max_seq_length = self.max_seq_length_dict[mode]
-        tokenizer = self.tokenizer
+        tokenizer = self.tokenizer # noqa
 
-        stride = data_conf['stride']
+        examples = data
 
-        example = data
-        #多轮会话
-        ds = self.get_feature(example,stride,tokenizer,max_seq_length)
+        strategy = data_conf['strategy']
+        if strategy == DataStrategy.tunction:
+            ds = TokenTunction.process(tokenizer, config=config, max_seq_length=max_seq_length, examples=examples,
+                                       **data_conf[strategy])
+        elif strategy == DataStrategy.slidding:
+            ds = TokenSlidding.process(tokenizer, config=config, max_seq_length=max_seq_length, examples=examples,
+                                       **data_conf[strategy])
+
+        else:
+            raise ValueError('Invalid strategy', strategy)
+        if not ds:
+            return None
+
+        if self.index < 3:
+            print(ds[0])
         return ds
+
+
 
     def _get_paragraph(self, lines):
         D = []
@@ -143,12 +99,10 @@ class NN_DataHelper(DataHelper):
                               session['a']))
                          for session in paragraph]
             sub = []
-            # 自行做模板
             for (q, a) in paragraph:
                 assert len(a), ValueError('answer cannot empty')
-                sub.append((preprocess('用户：' + q + '小元：' ), a))
+                sub.append((preprocess(q), preprocess(a)))
             D.append((prefix, copy.deepcopy(sub)))
-            sub.clear()
         return D
 
     def _get_messages(self, lines):
@@ -176,12 +130,10 @@ class NN_DataHelper(DataHelper):
                     pair[0], pair[1] = None, None
 
             sub = []
-            # 自行做模板
             for (q, a) in paragraph:
                 assert len(a), ValueError('answer cannot empty')
-                sub.append((preprocess('用户：' + q + '小元：' ), a))
+                sub.append((preprocess(q), preprocess(a)))
             D.append((prefix, copy.deepcopy(sub)))
-            sub.clear()
         return D
 
     # 读取文件
