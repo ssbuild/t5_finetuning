@@ -85,7 +85,7 @@ class TokenTunction:
                 a_ids += tokenizer.encode(text=prefix, add_special_tokens=False)
 
             a_ids += tokenizer.encode(text=build_template(q, history=examples[:sid]), add_special_tokens=False)
-            b_ids = [config.decoder_start_token_id] + tokenizer.encode(text=a) + [config.eos_token_id]
+            b_ids = [config.decoder_start_token_id] + tokenizer.encode(text=a)[:max_seq_length -  3 - ensure_answer_min_length] + [config.eos_token_id]
 
             a_max_len = max(max_seq_length - len(b_ids) - 3 - ensure_answer_min_length,0)
             a_ids = a_ids[-a_max_len:]
