@@ -36,7 +36,7 @@ if __name__ == '__main__':
 
 
 
-    dataHelper = NN_DataHelper(model_args, None, data_args)
+    dataHelper = NN_DataHelper(model_args)
     tokenizer, config, _,_= dataHelper.load_tokenizer_and_config()
 
     pl_model = MyTransformer(config=config, model_args=model_args,torch_dtype=torch.float16,)
