@@ -31,7 +31,7 @@ if __name__ == '__main__':
     parser = HfArgumentParser((ModelArguments, ))
     (model_args,) = parser.parse_dict(train_info_args,allow_extra_keys=True)
 
-    dataHelper = NN_DataHelper(model_args, None, data_args)
+    dataHelper = NN_DataHelper(model_args)
     tokenizer, config, _,_= dataHelper.load_tokenizer_and_config()
 
     ckpt_dir = './best_ckpt/last'

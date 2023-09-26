@@ -11,7 +11,7 @@ from data_utils import NN_DataHelper, train_info_args,get_deepspeed_config, glob
 from aigc_zoo.model_zoo.t5.llm_model import MyTransformer, PetlArguments,LoraConfig,PromptArguments
 
 
-
+assert global_args["trainer_backend"] == "pl"
 
 if __name__ == '__main__':
     parser = HfArgumentParser((ModelArguments, TrainingArguments, DataArguments, PetlArguments, PromptArguments))
@@ -22,9 +22,8 @@ if __name__ == '__main__':
     output_weight_dir = './best_ckpt'
 
     config_kwargs = {"torch_dtype": torch.float16}
-    if global_args["num_layers"] > 0:
-        config_kwargs["num_layers"] = global_args["num_layers"]
-        config_kwargs["num_decoder_layers"] = global_args["num_layers"]
+    if global_args[ 'config_merge' ]:
+        config_kwargs.update(global_args[ 'config_merge' ])
     dataHelper = NN_DataHelper(model_args, training_args, data_args)
     tokenizer, config, label2id, id2label = dataHelper.load_tokenizer_and_config(config_kwargs=config_kwargs)
 

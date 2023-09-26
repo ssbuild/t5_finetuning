@@ -9,8 +9,8 @@ import random
 import typing
 import numpy as np
 import torch
-from deep_training.data_helper import DataHelper, ModelArguments, TrainingArguments, DataArguments
-from aigc_zoo.model_zoo.t5.llm_model import PetlArguments
+from deep_training.data_helper import DataHelper, ModelArguments, TrainingArguments, DataArguments, TrainingArgumentsHF
+from aigc_zoo.model_zoo.t5.llm_model import PetlArguments,PromptArguments
 from fastdatasets.record import load_dataset as Loader, RECORD, WriterObject, gfile
 from tqdm import tqdm
 from transformers import T5Tokenizer, HfArgumentParser, T5Config
@@ -59,9 +59,10 @@ class NN_DataHelper(DataHelper):
         self.index += 1
 
         tokenizer: T5Tokenizer
+        config: T5Config
         max_seq_length = self.max_seq_length_dict[mode]
         tokenizer = self.tokenizer # noqa
-
+        config = self.config # noqa
         examples = data
 
         strategy = data_conf['strategy']
@@ -261,9 +262,14 @@ class NN_DataHelper(DataHelper):
             self.make_dataset_with_args(data_args.test_file, mode='test',schema=schema)
 
 if __name__ == '__main__':
-    parser = HfArgumentParser((ModelArguments, TrainingArguments, DataArguments, PetlArguments))
-    model_args, training_args, data_args, lora_args = parser.parse_dict(train_info_args)
-    lora_args = lora_args.config
+    if global_args[ "trainer_backend" ] == "hf":
+        parser = HfArgumentParser((ModelArguments, TrainingArgumentsHF, DataArguments, PetlArguments, PromptArguments),
+                                  conflict_handler='resolve')
+        model_args, training_args, data_args, lora_args, prompt_args = parser.parse_dict(train_info_args,
+                                                                                         allow_extra_keys=True, )
+    else:
+        parser = HfArgumentParser((ModelArguments, TrainingArguments, DataArguments, PetlArguments, PromptArguments))
+        model_args, training_args, data_args, _, _ = parser.parse_dict(train_info_args)
 
     dataHelper = NN_DataHelper(model_args, training_args, data_args)
     tokenizer, config, label2id, id2label = dataHelper.load_tokenizer_and_config()
