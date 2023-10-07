@@ -9,7 +9,8 @@ import random
 import typing
 import numpy as np
 import torch
-from deep_training.data_helper import DataHelper, ModelArguments, TrainingArguments, DataArguments, TrainingArgumentsHF
+from deep_training.data_helper import DataHelper, ModelArguments, TrainingArguments, DataArguments, TrainingArgumentsHF, \
+    TrainingArgumentsCL
 from aigc_zoo.model_zoo.t5.llm_model import PetlArguments,PromptArguments
 from fastdatasets.record import load_dataset as Loader, RECORD, WriterObject, gfile
 from tqdm import tqdm
@@ -267,9 +268,14 @@ if __name__ == '__main__':
                                   conflict_handler='resolve')
         model_args, training_args, data_args, lora_args, prompt_args = parser.parse_dict(train_info_args,
                                                                                          allow_extra_keys=True, )
-    else:
+    elif global_args[ "trainer_backend" ] == "pl":
         parser = HfArgumentParser((ModelArguments, TrainingArguments, DataArguments, PetlArguments, PromptArguments))
         model_args, training_args, data_args, _, _ = parser.parse_dict(train_info_args)
+    else:
+        parser = HfArgumentParser((ModelArguments, TrainingArgumentsCL, DataArguments, PetlArguments, PromptArguments),
+                                  conflict_handler='resolve')
+        model_args, training_args, data_args, lora_args, prompt_args = parser.parse_dict(train_info_args,
+                                                                                         allow_extra_keys=True, )
 
     dataHelper = NN_DataHelper(model_args, training_args, data_args)
     tokenizer, config, label2id, id2label = dataHelper.load_tokenizer_and_config()
