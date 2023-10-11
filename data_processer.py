@@ -88,7 +88,7 @@ class TokenTunction:
                     b_ids.pop(-1)
                 else:
                     a_ids.pop(0)
-            b_ids = [config.decoder_start_token_id] + b_ids [config.eos_token_id]
+            b_ids = [config.decoder_start_token_id] + b_ids +  [config.eos_token_id]
             ds.append(cls.final(a_ids,b_ids))
         return ds
 
