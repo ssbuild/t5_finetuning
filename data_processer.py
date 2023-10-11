@@ -55,7 +55,10 @@ build_template = build_template_chatyuan
 class TokenTunction:
 
     @classmethod
-    def final(cls,a_ids,b_ids):
+    def final(cls,a_ids,b_ids,max_seq_length):
+        a_ids += [0] * (max_seq_length - len(a_ids))
+        b_ids += [-100] * (max_seq_length - len(b_ids))
+
         a_ids = np.asarray(a_ids)
         b_ids = np.asarray(b_ids)
         seqlen = np.sum(a_ids)
@@ -82,14 +85,14 @@ class TokenTunction:
         for sid, (q, a) in enumerate(examples):
             a_ids = tokenizer.encode(text=build_template(q, history=examples[:sid]), add_special_tokens=False)
             b_ids = tokenizer.encode(text=a,add_special_tokens=False)
+            while len(a_ids) > max_seq_length :
+                a_ids.pop(0)
 
-            while len(a_ids) + len(b_ids) > max_seq_length - 2:
-                if len(b_ids) > len(a_ids):
-                    b_ids.pop(-1)
-                else:
-                    a_ids.pop(0)
-            b_ids = [config.decoder_start_token_id] + b_ids +  [config.eos_token_id]
-            ds.append(cls.final(a_ids,b_ids))
+            while  len(b_ids) > max_seq_length - 2:
+                b_ids.pop(-1)
+            b_ids = [config.decoder_start_token_id] + b_ids + [config.eos_token_id]
+
+            ds.append(cls.final(a_ids,b_ids,max_seq_length))
         return ds
 
 
