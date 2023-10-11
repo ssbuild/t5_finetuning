@@ -56,15 +56,12 @@ class TokenTunction:
 
     @classmethod
     def final(cls,a_ids,b_ids,max_seq_length):
-        a_ids += [0] * (max_seq_length - len(a_ids))
-        b_ids += [-100] * (max_seq_length - len(b_ids))
-
-        a_ids = np.asarray(a_ids)
-        b_ids = np.asarray(b_ids)
-        seqlen = np.sum(a_ids)
+        seqlen = len(a_ids)
         decoder_seqlen = len(b_ids)
-        labels = np.asarray(copy.deepcopy(a_ids[1:]),dtype=np.int64)
-        labels = np.concatenate([labels,np.asarray([-100],dtype=np.int64)],axis=0)
+
+        a_ids += [0] * (max_seq_length - len(a_ids))
+        b_ids += [0] * (max_seq_length - len(b_ids))
+        labels = copy.deepcopy(a_ids[1:]) + [-100]
         labels = np.asarray(labels, dtype=np.int64)
         labels[decoder_seqlen - 1:] = -100
 
@@ -75,7 +72,7 @@ class TokenTunction:
             'decoder_input_ids': np.asarray(b_ids, dtype=np.int32),
             'decoder_attention_mask': np.asarray([1] * len(b_ids), dtype=np.int32),
             'decoder_seqlen': np.asarray(decoder_seqlen, dtype=np.int32),
-            'labels': np.asarray(labels, dtype=np.int32)
+            'labels': np.asarray(labels, dtype=np.int64)
         }
         return d
     @classmethod
@@ -87,11 +84,9 @@ class TokenTunction:
             b_ids = tokenizer.encode(text=a,add_special_tokens=False)
             while len(a_ids) > max_seq_length :
                 a_ids.pop(0)
-
-            while  len(b_ids) > max_seq_length - 2:
+            while len(b_ids) > max_seq_length - 2:
                 b_ids.pop(-1)
             b_ids = [config.decoder_start_token_id] + b_ids + [config.eos_token_id]
-
             ds.append(cls.final(a_ids,b_ids,max_seq_length))
         return ds
 
