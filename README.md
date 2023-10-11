@@ -1,5 +1,4 @@
-## update information
-   - [deep_training](https://github.com/ssbuild/deep_training)
+## 注意 t5 训练精度推荐使用 32 
 
 ```text
     10-09 support accelerator trainer
@@ -11,6 +10,9 @@
     05-27 add qlora transformers>=4.30
     05-24 升级 lora
 ```
+
+## update information
+   - [deep_training](https://github.com/ssbuild/deep_training)
 
 ## install
   - pip install -U -r requirements.txt
