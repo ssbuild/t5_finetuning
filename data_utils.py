@@ -21,7 +21,6 @@ from data_processer import DataStrategy, TokenTunction, TokenSlidding
 data_conf = {
     'strategy': DataStrategy.tunction,  # 数据策略选项
     DataStrategy.tunction: {
-        'ensure_answer_min_length': 1,
         'sup': True, # 是否监督模式
     },
 

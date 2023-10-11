@@ -15,8 +15,8 @@ class DataStrategy(Enum):
 
 
 
-def build_template_chatyuan(query, answer = None, history=None):
-    prompt = ''
+def build_template_chatyuan(query, answer = None,prefix=None, history=None):
+    prompt = prefix or ''
     if history is not None:
         for q,a in history:
             prompt += "用户：{}小元：".format(q,a)
@@ -25,8 +25,8 @@ def build_template_chatyuan(query, answer = None, history=None):
         prompt += answer
     return prompt
 
-def build_template_default(query, answer = None, history=None):
-    prompt = ''
+def build_template_default(query, answer = None,prefix=None, history=None):
+    prompt = prefix or ''
     if history is not None:
         for q,a in history:
             prompt += "User: {}\nAssistant:{}".format(q,a)
@@ -35,8 +35,8 @@ def build_template_default(query, answer = None, history=None):
         prompt += answer
     return prompt
 
-def build_template_tiger(query,answer = None, history=None):
-    prompt = ''
+def build_template_tiger(query,answer = None,prefix=None, history=None):
+    prompt = prefix or ''
     tok_ins = "\n\n### Instruction:\n"
     tok_res = "\n\n### Response:\n"
     if history is not None:
@@ -76,20 +76,20 @@ class TokenTunction:
         }
         return d
     @classmethod
-    def process(cls, tokenizer: PreTrainedTokenizer, config, sup,ensure_answer_min_length, max_seq_length, examples):
+    def process(cls, tokenizer: PreTrainedTokenizer, config, sup, max_seq_length, examples):
         ds = []
         prefix, examples = examples
         for sid, (q, a) in enumerate(examples):
-            a_ids, b_ids = [], []
-            if len(prefix) > 0:
-                a_ids += tokenizer.encode(text=prefix, add_special_tokens=False)
+            a_ids = tokenizer.encode(text=build_template(q, history=examples[:sid]), add_special_tokens=False)
+            b_ids = tokenizer.encode(text=a,add_special_tokens=False)
 
-            a_ids += tokenizer.encode(text=build_template(q, history=examples[:sid]), add_special_tokens=False)
-            b_ids = [config.decoder_start_token_id] + tokenizer.encode(text=a)[:max_seq_length -  3 - ensure_answer_min_length] + [config.eos_token_id]
-
-            a_max_len = max(max_seq_length - len(b_ids) - 3 - ensure_answer_min_length,0)
-            a_ids = a_ids[-a_max_len:]
-            ds.append(cls.final(a_ids,a_ids))
+            while len(a_ids) + len(b_ids) > max_seq_length - 2:
+                if len(b_ids) > len(a_ids):
+                    b_ids.pop(-1)
+                else:
+                    a_ids.pop(0)
+            b_ids = [config.decoder_start_token_id] + b_ids [config.eos_token_id]
+            ds.append(cls.final(a_ids,b_ids))
         return ds
 
 
@@ -99,15 +99,10 @@ class TokenSlidding:
         ds = []
         prefix,examples = examples
         for sid, (q, a) in enumerate(examples):
-            a_ids,b_ids = [],[]
-            if len(prefix) > 0:
-                a_ids += tokenizer.encode(text=prefix, add_special_tokens=False)
-
-            a_ids += tokenizer.encode(text=build_template(q, history=examples[:sid]), add_special_tokens=False)
+            a_ids = tokenizer.encode(text=build_template(q, history=examples[:sid]), add_special_tokens=False)
             b_ids = tokenizer.encode(text=a) + [config.eos_token_id]
 
             input_ids_all = a_ids + b_ids
-
 
             pos = 0
             while pos < len(input_ids_all):
@@ -115,8 +110,8 @@ class TokenSlidding:
                 pos += stride
 
                 ds.append({
-                'input_ids': input_ids,
-                'seqlen': len(input_ids)
+                'input_ids': np.asarray(input_ids,dtype=np.int32),
+                'seqlen': np.asarray(len(input_ids),dtype=np.int32)
             })
         return ds
 
