@@ -67,10 +67,10 @@ class TokenTunction:
 
         d = {
             'input_ids': np.asarray(a_ids, dtype=np.int32),
-            'attention_mask': np.asarray([1] * len(a_ids), dtype=np.int32),
+            'attention_mask': np.asarray([1] * seqlen, dtype=np.int32),
             'seqlen': np.asarray(seqlen, dtype=np.int32),
             'decoder_input_ids': np.asarray(b_ids, dtype=np.int32),
-            'decoder_attention_mask': np.asarray([1] * len(b_ids), dtype=np.int32),
+            'decoder_attention_mask': np.asarray([1] * decoder_seqlen, dtype=np.int32),
             'decoder_seqlen': np.asarray(decoder_seqlen, dtype=np.int32),
             'labels': np.asarray(labels, dtype=np.int64)
         }
