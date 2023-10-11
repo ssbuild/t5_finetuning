@@ -59,11 +59,17 @@ class TokenTunction:
         seqlen = len(a_ids)
         decoder_seqlen = len(b_ids)
 
-        a_ids += [0] * (max_seq_length - len(a_ids))
-        b_ids += [0] * (max_seq_length - len(b_ids))
-        labels = copy.deepcopy(a_ids[1:]) + [-100]
+        pad_len = max_seq_length - seqlen
+        if pad_len > 0:
+            a_ids += [0] * pad_len
+
+        pad_len = max_seq_length - decoder_seqlen
+        if pad_len > 0:
+            b_ids += [0] * pad_len
+
+        labels = copy.deepcopy(b_ids[1:]) + [-100]
         labels = np.asarray(labels, dtype=np.int64)
-        labels[decoder_seqlen - 1:] = -100
+        labels[decoder_seqlen:] = -100
 
         d = {
             'input_ids': np.asarray(a_ids, dtype=np.int32),
