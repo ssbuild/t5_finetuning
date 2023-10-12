@@ -46,4 +46,3 @@ train_info_models = {
 # TRANSFORMERS_MODELS_TO_IA3_TARGET_MODULES_MAPPING
 # TRANSFORMERS_MODELS_TO_IA3_FEEDFORWARD_MODULES_MAPPING
 
-train_model_config = train_info_models['ChatYuan-large-v2']
