@@ -1,4 +1,4 @@
-## 注意 t5 训练精度推荐使用 32 
+
 
 ```text
     10-09 support accelerator trainer
@@ -13,6 +13,7 @@
 
 ## update information
    - [deep_training](https://github.com/ssbuild/deep_training)
+   - t5 训练精度推荐使用 32 
 
 ## install
   - pip install -U -r requirements.txt

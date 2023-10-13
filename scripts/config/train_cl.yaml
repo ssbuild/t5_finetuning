@@ -9,7 +9,7 @@ global_args:
   model_name: ChatYuan-large-v2
 
   # one of auto 16 bf16 32
-  precision: auto
+  precision: 32
   quantization_config:
     load_in_8bit: false
     load_in_4bit: false
