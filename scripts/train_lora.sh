@@ -15,11 +15,6 @@ export load_in_bit=4
 usage() { echo "Usage: $0 [-m <train|dataset>]" 1>&2; exit 1; }
 
 
-
-
-usage() { echo "Usage: $0 [-m <train|dataset>]" 1>&2; exit 1; }
-
-
 while getopts m: opt
 do
 	case "${opt}" in
