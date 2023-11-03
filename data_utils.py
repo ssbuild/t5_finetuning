@@ -4,6 +4,8 @@
 
 import sys
 import os
+from functools import cache
+
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 import glob
@@ -265,6 +267,26 @@ class NN_DataHelper(DataHelper):
             self.make_dataset_with_args(data_args.eval_file, mode='eval',schema=schema)
         if data_args.do_test:
             self.make_dataset_with_args(data_args.test_file, mode='test',schema=schema)
+
+
+        train_files = self.train_files
+        eval_files = self.eval_files
+        test_files = self.test_files
+
+        # 记录缓存文件
+        with open(os.path.join(data_args.output_dir,'intermediate_file_index.json'),mode='w',encoding='utf-8') as f:
+            f.write(json.dumps({
+                "train_files": train_files,
+                "eval_files": eval_files,
+                "test_files": test_files,
+            }))
+
+    # 加载训练文件
+    @cache
+    def load_dataset_files(self):
+        with open(os.path.join(data_args.output_dir, 'intermediate_file_index.json'), mode='w', encoding='utf-8') as f:
+            return json.loads(f.read())
+
 
 if __name__ == '__main__':
     if global_args[ "trainer_backend" ] == "hf":
