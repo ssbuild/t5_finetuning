@@ -10,7 +10,6 @@ export enable_deepspeed=false
 export enable_ptv2=false
 export enable_lora=true
 export load_in_bit=0
-export precision="16"
 
 #export CUDA_VISIBLE_DEVICES="0,1,2,3"
 
