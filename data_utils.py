@@ -268,17 +268,12 @@ class NN_DataHelper(DataHelper):
         if data_args.do_test:
             self.make_dataset_with_args(data_args.test_file, mode='test',schema=schema)
 
-
-        train_files = self.train_files
-        eval_files = self.eval_files
-        test_files = self.test_files
-
         # 记录缓存文件
         with open(os.path.join(data_args.output_dir,'intermediate_file_index.json'),mode='w',encoding='utf-8') as f:
             f.write(json.dumps({
-                "train_files": train_files,
-                "eval_files": eval_files,
-                "test_files": test_files,
+                "train_files": self.train_files,
+                "eval_files": self.eval_files,
+                "test_files": self.test_files,
             },ensure_ascii=False))
 
     # 加载训练文件
@@ -314,11 +309,10 @@ if __name__ == '__main__':
     dataHelper = NN_DataHelper(model_args, training_args, data_args)
     tokenizer, config, label2id, id2label = dataHelper.load_tokenizer_and_config()
 
+
+
     # 缓存数据集
-    # 检测是否存在 output/dataset_0-train.record ，不存在则制作数据集
-
     print(f'to make dataset is overwrite_cache {data_args.overwrite_cache}')
-
     dataHelper.make_dataset_all()
 
     print('make dataset complete!')
