@@ -12,8 +12,8 @@ from aigc_zoo.model_zoo.t5.llm_model import MyTransformer,PetlArguments
 from data_utils import train_info_args, postprocess, NN_DataHelper
 
 
-def generate_text(base_model,text,device = torch.device('cuda:0'),max_length=128):
-    input_text = "用户：" + text + "\n小元："
+def generate_text(base_model,text,device = torch.device('cuda:0'),max_length=128,prefix=''):
+    input_text = prefix + "用户：" + text + "\n小元："
 
     o = tokenizer.encode_plus(input_text, truncation=True, max_length=512, return_attention_mask=False,return_token_type_ids=False)
     input_ids= [o['input_ids']]
@@ -64,11 +64,12 @@ if __name__ == '__main__':
         model = pl_model.get_llm_model()
         model.eval().half().cuda()
 
+        prefix = input("请输入前缀:")
         while True:
             text = input("请输入文本(quit or q or exit 退出程序):")
             if text.lower() in ['quit','q','exit']:
                 break
 
-            output = generate_text(model, text)
+            output = generate_text(model, text,prefix=prefix)
             print('input', text)
             print('output', output)

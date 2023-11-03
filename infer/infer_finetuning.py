@@ -13,8 +13,8 @@ from aigc_zoo.model_zoo.t5.llm_model import MyTransformer,PetlArguments
 from data_utils import train_info_args, postprocess, NN_DataHelper,get_deepspeed_config
 
 
-def generate_text(base_model,text,device = torch.device('cuda:0'),max_length=128):
-    input_text = "用户：" + text + "\n小元："
+def generate_text(base_model,text,device = torch.device('cuda:0'),max_length=128,prefix=''):
+    input_text = prefix + "用户：" + text + "\n小元："
 
     o = tokenizer.encode_plus(input_text, truncation=True, max_length=512, return_attention_mask=False,return_token_type_ids=False)
     input_ids= [o['input_ids']]
