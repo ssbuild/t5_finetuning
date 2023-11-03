@@ -284,7 +284,10 @@ class NN_DataHelper(DataHelper):
     # 加载训练文件
     @cache
     def load_dataset_files(self):
-        with open(os.path.join(data_args.output_dir, 'intermediate_file_index.json'), mode='w', encoding='utf-8') as f:
+        data_args = self.data_args
+        filename = os.path.join(data_args.output_dir, 'intermediate_file_index.json')
+        assert os.path.exists(filename) , 'make you dataset firstly'
+        with open(filename, mode='w', encoding='utf-8') as f:
             return json.loads(f.read())
 
 
