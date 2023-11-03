@@ -64,8 +64,12 @@ if __name__ == '__main__':
         model = pl_model.get_llm_model()
         model.eval().half().cuda()
 
-
-        text= "写一个诗歌，关于冬天"
-        output = generate_text(model,text)
-        print('input',text)
-        print('output',output)
+        input_list = [
+            "写一个诗歌，关于冬天",
+            "晚上睡不着怎么办",
+            "中国的首都是哪里",
+        ]
+        for text in input_list:
+            output = generate_text(model, text)
+            print('input', text)
+            print('output', output)
