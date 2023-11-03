@@ -73,7 +73,7 @@ class TokenTunction:
             decoder_attention_mask += [0] * pad_len
 
         labels = np.asarray(copy.deepcopy(b_ids[1:]) + [-100], dtype=np.int64)
-        labels[decoder_seqlen:] = -100
+        labels[decoder_seqlen-1:] = -100
 
         d = {
             'input_ids': np.asarray(a_ids, dtype=np.int32),
