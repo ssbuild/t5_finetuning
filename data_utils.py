@@ -1,10 +1,12 @@
 # @Time    : 2023/1/22 16:22
 # @Author  : tk
 # @FileName: data_utils.py
+
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
+import glob
 import copy
 import json
 import random
@@ -142,6 +144,7 @@ class NN_DataHelper(DataHelper):
     # 读取文件
     def on_get_corpus(self, files: typing.List, mode: str):
         D = []
+        files = sum([glob.glob(file) for file in files], [])
         for file in files:
             with open(file, mode='r', encoding='utf-8', newline='\n') as f:
                 lines = f.readlines()
