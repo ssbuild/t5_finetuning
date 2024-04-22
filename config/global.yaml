@@ -1,0 +1,44 @@
+global_args:
+  trainer_backend: pl
+  enable_deepspeed: false
+  enable_ptv2: false
+  enable_lora: true
+  load_in_bit: 0
+  config_merge: {}
+  # 模型权重 ， 对应 configconstant_mappy
+  model_name: ChatYuan-large-v2
+
+  # one of auto 16 bf16 32
+  precision: 32
+  quantization_config:
+    load_in_8bit: false
+    load_in_4bit: false
+    llm_int8_threshold: 6.0
+    llm_int8_has_fp16_weight: false
+    bnb_4bit_compute_dtype: float16  # one of float16  bfloat16 float32
+    bnb_4bit_use_double_quant: true
+    bnb_4bit_quant_type: nf4
+    
+    
+
+global_models_mapper:
+    ChatYuan-large-v2: 
+        model_type: t5
+        model_name_or_path: /data/nlp/pre_models/torch/t5/ChatYuan-large-v2
+        tokenizer_name: /data/nlp/pre_models/torch/t5/ChatYuan-large-v2
+        config_name: /data/nlp/pre_models/torch/t5/ChatYuan-large-v2/config.json
+    
+    ChatYuan-large-v1: 
+        model_type: t5
+        model_name_or_path: /data/nlp/pre_models/torch/t5/ChatYuan-large-v1
+        tokenizer_name: /data/nlp/pre_models/torch/t5/ChatYuan-large-v1
+        config_name: /data/nlp/pre_models/torch/t5/ChatYuan-large-v1/config.json
+
+    
+    PromptCLUE-base-v1-5: 
+        model_type: t5
+        model_name_or_path: /data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5
+        tokenizer_name: /data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5
+        config_name: /data/nlp/pre_models/torch/t5/PromptCLUE-base-v1-5/config.json
+    
+

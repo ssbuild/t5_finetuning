@@ -9,8 +9,8 @@ import torch
 from deep_training.data_helper import ModelArguments, TrainingArguments, DataArguments
 from transformers import HfArgumentParser,AutoConfig
 
-from data_utils import train_info_args, NN_DataHelper, postprocess
-from aigc_zoo.model_zoo.t5.llm_model import MyTransformer,PetlArguments,PromptArguments
+from data_utils import config_args, NN_DataHelper, postprocess
+from deep_training.zoo.model_zoo.t5.llm_model import MyTransformer,PetlArguments,PromptArguments
 
 def generate_text(base_model,text,device = torch.device('cuda:0'),max_length=128):
     input_text = "用户：" + text + "\n小元："
@@ -29,9 +29,9 @@ def generate_text(base_model,text,device = torch.device('cuda:0'),max_length=128
     return out_text
 
 if __name__ == '__main__':
-    train_info_args['seed'] = None
+    config_args['seed'] = None
     parser = HfArgumentParser((ModelArguments,))
-    (model_args,) = parser.parse_dict(train_info_args, allow_extra_keys=True)
+    (model_args,) = parser.parse_dict(config_args, allow_extra_keys=True)
 
 
 

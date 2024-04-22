@@ -9,8 +9,8 @@ import torch
 from deep_training.data_helper import ModelArguments, DataArguments, TrainingArguments
 from transformers import HfArgumentParser
 
-from aigc_zoo.model_zoo.t5.llm_model import MyTransformer,PetlArguments
-from data_utils import train_info_args, postprocess, NN_DataHelper,get_deepspeed_config
+from deep_training.zoo.model_zoo.t5.llm_model import MyTransformer,PetlArguments
+from data_utils import config_args, postprocess, NN_DataHelper,get_deepspeed_config
 
 
 def generate_text(base_model,text,device = torch.device('cuda:0'),max_length=128,prefix=''):
@@ -34,7 +34,7 @@ deep_config = get_deepspeed_config()
 
 if __name__ == '__main__':
     parser = HfArgumentParser((ModelArguments, ))
-    (model_args, ) = parser.parse_dict(train_info_args, allow_extra_keys=True)
+    (model_args, ) = parser.parse_dict(config_args, allow_extra_keys=True)
 
 
 

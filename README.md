@@ -1,14 +1,15 @@
 
 
 ```text
-    10-09 support accelerator trainer
-    10-07 support colossalai trainer
-    09-26 support transformers trainer
-    08-02 增加 muti lora infer 例子, 手动升级 aigc_zoo , pip install -U git+https://github.com/ssbuild/aigc_zoo.git --force-reinstall --no-deps
-	06-13 support resize_token_embeddings
-    06-01 支持lora deepspeed 训练，0.1.9 和 0.1.10合并
-    05-27 add qlora transformers>=4.30
-    05-24 升级 lora
+    2024-04-22 简化
+    2023-10-09 support accelerator trainer
+    2023-10-07 support colossalai trainer
+    2023-09-26 support transformers trainer
+    2023-08-02 增加 muti lora infer 例子, 手动升级 aigc_zoo , pip install -U git+https://github.com/ssbuild/deep_training.zoo.git --force-reinstall --no-deps
+	2023-06-13 support resize_token_embeddings
+    2023-06-01 支持lora deepspeed 训练，0.1.9 和 0.1.10合并
+    2023-05-27 add qlora transformers>=4.30
+    2023-05-24 升级 lora
 ```
 
 ## update information
